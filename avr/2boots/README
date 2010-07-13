@@ -1,0 +1,15 @@
+2boots
+------
+
+What is this ?
+
+This is a dual bootloader for Atmel AVR atmega chips. It combines 
+a serial bootloader and a mmc/sd card based one in the same 2kb of flash
+memory that is normally used by the arduino serial loader alone.
+
+Why does it exists ?
+
+Well, I have quite a few arduino "in the field". I can simply drag a .hex
+file to an SD card, insert it in an SD shield, and field-upgrade my boards
+without additional hardware.
+
