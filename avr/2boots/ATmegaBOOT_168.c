@@ -1,7 +1,4 @@
-
-
 /* $Id$ */
-
 
 /* some includes */
 /* some includes */
@@ -12,6 +9,7 @@
 
 /* function prototypes */
 void main (void) __attribute__ ((naked,section (".init9")));
+static char inline bootloader_skip_condition();
 
 /* some variables */
 void (*app_start)(void) = 0x0000;
@@ -31,14 +29,16 @@ void main(void)
 	WDTCSR |= _BV(WDCE) | _BV(WDE);
 	WDTCSR = 0;
 	
-	/* if we had power up or watchdog, start the app immediately */
-	if (! (reset_reason & _BV(EXTRF))) app_start();
+	/* test if we should skip to the app immediately... */
+	if (bootloader_skip_condition()) app_start();
 
 	/* warning: this means that the rest of the bootloader only runs,  */
-	/*          if an external reset was triggered!                    */
+	/*          if the bootloader_skip_condition returnd false !!!     */
 
-
+	/* lets first try the mmc */
 	mmc_updater();
+	
+	/* the fall back to serial */
 	stk500v1();
 		
 	/* reset via watchdog */
