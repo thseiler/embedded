@@ -1,7 +1,6 @@
 /* $Id$ */
 
 /* some includes */
-/* some includes */
 #include <inttypes.h>
 #include <avr/io.h>
 #include "stk500v1.h"
@@ -22,24 +21,33 @@ void main(void)
 	reset_reason = MCUSR;
 	MCUSR = 0;
 
-	/* this is needed because of the __attribute__ naked, section .init 9 */
-	asm volatile ( "clr __zero_reg__" );
-	SP=RAMEND;
-	
+	/* stop watchdog */
 	WDTCSR |= _BV(WDCE) | _BV(WDE);
 	WDTCSR = 0;
 	
+	/* start app right ahead if this was watchdog */
+	if ((reset_reason & _BV(WDRF))) app_start();
+
+	/* this is needed because of the __attribute__ naked, section .init 9 */
+	/* from now, we can call functions :-) */
+	asm volatile ( "clr __zero_reg__" );
+	SP=RAMEND;
+
 	/* test if we should skip to the app immediately... */
 	if (bootloader_skip_condition()) app_start();
 
 	/* warning: this means that the rest of the bootloader only runs,  */
 	/*          if the bootloader_skip_condition returnd false !!!     */
 
+#ifndef DISABLE_MMC
 	/* lets first try the mmc */
 	mmc_updater();
-	
+#endif
+
+#ifndef DISABLE_SERIAL
 	/* the fall back to serial */
 	stk500v1();
+#endif
 		
 	/* reset via watchdog */
 	WDTCSR = _BV(WDE);
@@ -48,14 +56,13 @@ void main(void)
 
 /* here is a collection of conditions as to when to enter bootloader */
 
-#ifdef CONDITION_VOLTAGE
+#ifdef CONDITION_FTTH_HEAD_VOLTAGE
 
 static char bootloader_skip_condition() {
     unsigned char high, low;
     unsigned short voltage;
-
+    
     // enable adc
-    PRR &= ~_BV(PRADC);
     ADMUX = _BV(REFS0)  | _BV(REFS1) | 0x06;
     ADCSRA |= _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1) | _BV(ADSC); // 1/64
     loop_until_bit_is_clear(ADCSRA, ADSC);
@@ -64,7 +71,7 @@ static char bootloader_skip_condition() {
     high = ADCH;
     voltage = ((unsigned short)high << 8) | low;
 
-    return (voltage > 292); 
+    return (voltage < 292);
 }
 
 #elif defined(CONDITION_FTTH_CONT_BUTTONS)
@@ -94,6 +101,5 @@ static char inline bootloader_skip_condition() {
 
 #endif 
 
-
-
 /* end of file ATmegaBOOT.c */
+

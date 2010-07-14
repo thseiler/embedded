@@ -304,7 +304,7 @@ static inline uint8_t fat16_readRootDirEntry(uint16_t entry_num) {
 	return 0;
 }
 
-static void fat16_readfilesector()
+static void inline fat16_readfilesector()
 {
 	uint16_t clusteroffset;
 	uint8_t currentfatsector;

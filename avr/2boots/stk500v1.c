@@ -401,6 +401,7 @@ void stk500v1() {
 		
 	} /* forever loop */
 	
+	/* make avrdude happy when issuing quit command */
 	putch(0x14);
 	putch(0x10);
 }
