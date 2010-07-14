@@ -258,6 +258,9 @@ static struct _file_s {
  	uint16_t sector_counter;
  	uint32_t size;
  	uint8_t* next;
+ 	uint8_t match_eeprom_name;
+ 	uint8_t ending_hex;
+ 	uint8_t ending_eep;
 } file;
 
 static inline uint16_t fat16_readRootDirEntry(uint16_t entry_num) {
@@ -283,18 +286,40 @@ static inline uint16_t fat16_readRootDirEntry(uint16_t entry_num) {
 
 	if ((dir->name[0] == 0) || (dir->name[0] == 0xE5) || (dir->fstclust == 0))
 		return 0xFFFF;
-
-	//entry = dir;
-
+		
 	/* fill in the file structure */
-	file.startcluster = dir->fstclust;
+	file.startcluster = dir->fstclust;  /* copy, need it later... */
 	file.size = dir->filesize;
+	
 	file.sector_counter = 0;
 	file.next = buff + 512;
-	/* copy name */
-	uint8_t i;
-	for (i = 0; i<11;i++) file.name[i] = dir->name[i];
 	
+	/* check file ending */
+	file.ending_hex = (dir->name[8] == 'H' && dir->name[10] == 'X');
+	file.ending_eep = (dir->name[8] == 'E' && dir->name[10] == 'P');
+	
+	/* compare name to eeprom */
+	uint8_t match = 1;
+	uint8_t i = 0;
+	uint8_t ch = 0;
+	while(i<8) {
+		/* read eeprom backwards, starting from its end */
+#if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
+		while(EECR & (1<<EEPE));
+		EEAR = (uint16_t)(void *)E2END -i;
+		EECR |= (1<<EERE);
+		ch =EEDR;
+#else
+		ch = eeprom_read_byte((void *)E2END - i);
+#endif			
+		if (ch == 0xFF) {
+			break;
+		} 
+		match &= (dir->name[i] == ch);
+		i++;
+	}
+	file.match_eeprom_name = match & i; /* an empty epromname does not match!*/
+		
 	return dir->fstclust;
 }
 
@@ -408,18 +433,16 @@ static inline void read_hex_file(void) {
 
 void mmc_updater() {
 	uint16_t entrycounter = 0;
-	uint8_t i = 0;
 	uint8_t ch =0;
-	uint8_t match = 0;
 	
 	/* only init the mmc if we have a named board */
 #if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 				while(EECR & (1<<EEPE));
-				EEAR = (uint16_t)(void *)E2END -i;
+				EEAR = (uint16_t)(void *)E2END;
 				EECR |= (1<<EERE);
 				ch =EEDR;
 #else
-				ch = eeprom_read_byte((void *)E2END - i);
+				ch = eeprom_read_byte((void *)E2END);
 #endif		
 	if (ch == 0xFF) return;
 	
@@ -431,35 +454,10 @@ void mmc_updater() {
 			/* skip deleted files and directries */
 			if (fat16_readRootDirEntry(entrycounter) == 0xFFFF) continue;
 			
-			/* compare filename to eeprom */
-			match = 1;
-			i = 0;
-			while(i<8) {
-				/* read eeprom starting from end */
-#if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
-				while(EECR & (1<<EEPE));
-				EEAR = (uint16_t)(void *)E2END -i;
-				EECR |= (1<<EERE);
-				ch =EEDR;
-#else
-				ch = eeprom_read_byte((void *)E2END - i);
-#endif			
-				if (ch == 0xFF) {
-					break;
-				} else {	
-					match &= (file.name[i] == ch);
-				}
-				i++;
-			}
-			match &= i; /* an empty epromname does not match!*/
-			
 			/* if match, programm! */
-			if (match) {
-				/* if ending is .hex => write to flash */
-				if (file.name[8] == 'H' && file.name[9] == 'E' && file.name[10]=='X')
-				read_hex_file();
-				break;
-			}		
+			if (file.match_eeprom_name) {
+			   read_hex_file();				
+ 			}		
 		}
 	}
 }
