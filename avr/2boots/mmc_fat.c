@@ -253,20 +253,19 @@ static inline unsigned char fat16_init(void)
 }
 
 static struct _file_s {
-	char		name[11];
 	uint16_t startcluster;
  	uint16_t sector_counter;
  	uint32_t size;
  	uint8_t* next;
 } file;
 
-static inline uint16_t fat16_readRootDirEntry(uint16_t entry_num) {
+static inline uint8_t fat16_readRootDirEntry(uint16_t entry_num) {
 	uint8_t direntry_in_sector;
  	direntry_t *dir;
-	
+		
 	/* Check for end of root dir region reached! */
 	if ((entry_num / 16) >= RootDirRegionSize)
-		return 0xFFFF;
+		return 0;
 
 	/* this finds the sector in which the entry will be saved */	
 	uint32_t dirsector = RootDirRegionStartSec + entry_num / 16;
@@ -282,20 +281,27 @@ static inline uint16_t fat16_readRootDirEntry(uint16_t entry_num) {
 	dir = (direntry_t *) buff + direntry_in_sector;
 
 	if ((dir->name[0] == 0) || (dir->name[0] == 0xE5) || (dir->fstclust == 0))
-		return 0xFFFF;
-
-	//entry = dir;
+		return 0;
 
 	/* fill in the file structure */
 	file.startcluster = dir->fstclust;
 	file.size = dir->filesize;
 	file.sector_counter = 0;
 	file.next = buff + 512;
-	/* copy name */
-	uint8_t i;
-	for (i = 0; i<11;i++) file.name[i] = dir->name[i];
+
+	/* compare name */
+	uint8_t i = 0;
+	uint8_t match = 1;
+	for (i = 0; pagebuffer[i]; i++) { 
+	  match &= (pagebuffer[i] == dir->name[i]);
+	}
+	if (!(match & i)) return 0;
 	
-	return dir->fstclust;
+	/* match ending, seach for HEX => return 1, or EEP => return 2*/
+	if (dir->name[9] != 'E') return 0;
+	if (dir->name[8] == 'H' && dir->name[10] == 'X') return 1;
+	if (dir->name[8] == 'E' && dir->name[10] == 'P') return 2;
+	return 0;
 }
 
 static void fat16_readfilesector()
@@ -410,56 +416,37 @@ void mmc_updater() {
 	uint16_t entrycounter = 0;
 	uint8_t i = 0;
 	uint8_t ch =0;
-	uint8_t match = 0;
 	
-	/* only init the mmc if we have a named board */
+	/* read board name from eeprom to pagebuffer */
+	while(i<8) {
 #if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
-				while(EECR & (1<<EEPE));
-				EEAR = (uint16_t)(void *)E2END -i;
-				EECR |= (1<<EERE);
-				ch =EEDR;
+		while(EECR & (1<<EEPE));
+		EEAR = (uint16_t)(void *)E2END -i;
+		EECR |= (1<<EERE);
+		ch =EEDR;
 #else
-				ch = eeprom_read_byte((void *)E2END - i);
-#endif		
-	if (ch == 0xFF) return;
+		ch = eeprom_read_byte((void *)E2END - i);
+#endif
+		if( ch == 0xFF) break;
+		pagebuffer[i] = ch;
+		i++;
+	}
+	pagebuffer[i] = '\0';
 	
-   	if (fat16_init() == 0)
-	{	
+	if (i) {
+		/* we have found a board name! 		   */
+		/* now go on and see if we find a      */
+		/* file on mmc with the same name...   */
+		
+		/* first, init mmc / fat */
+	   	if (fat16_init() != 0) return;	
+
 		/* for each file in ROOT... */
 		for (entrycounter=0; entrycounter<512; entrycounter++)
 		{
-			/* skip deleted files and directries */
-			if (fat16_readRootDirEntry(entrycounter) == 0xFFFF) continue;
-			
-			/* compare filename to eeprom */
-			match = 1;
-			i = 0;
-			while(i<8) {
-				/* read eeprom starting from end */
-#if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
-				while(EECR & (1<<EEPE));
-				EEAR = (uint16_t)(void *)E2END -i;
-				EECR |= (1<<EERE);
-				ch =EEDR;
-#else
-				ch = eeprom_read_byte((void *)E2END - i);
-#endif			
-				if (ch == 0xFF) {
-					break;
-				} else {	
-					match &= (file.name[i] == ch);
-				}
-				i++;
-			}
-			match &= i; /* an empty epromname does not match!*/
-			
-			/* if match, programm! */
-			if (match) {
-				/* if ending is .hex => write to flash */
-				if (file.name[8] == 'H' && file.name[9] == 'E' && file.name[10]=='X')
-				read_hex_file();
-				break;
-			}		
-		}
+			/* skip all unimportant files */
+			i = fat16_readRootDirEntry(entrycounter);
+			if (i == 1)	read_hex_file();
+		}	
 	}
 }
