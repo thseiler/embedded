@@ -198,6 +198,37 @@ mega_isp: LFUSE = FF
 mega_isp: EFUSE = F5
 mega_isp: isp
 
+ftth_cont: TARGET = ftth_cont
+ftth_cont: MCU_TARGET = atmega328p
+ftth_cont: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>3' '-DNUM_LED_FLASHES=1' -DBAUD_RATE=57600 -DDOUBLE_SPEED -DCONDITION_FTTH_CONT_BUTTONS
+ftth_cont: AVR_FREQ = 8000000L 
+ftth_cont: LDSECTION  = --section-start=.text=0x7800
+ftth_cont: $(PROGRAM)_ftth_cont.hex $(PROGRAM)_ftth_cont.lst
+
+ftth_cont_isp: ftth_cont
+ftth_cont_isp: TARGET = ftth_cont
+ftth_cont_isp: MCU_TARGET = atmega328p
+ftth_cont_isp: HFUSE = D2
+ftth_cont_isp: LFUSE = FF
+ftth_cont_isp: EFUSE = 05
+ftth_cont_isp: isp
+
+ftth_head: TARGET = ftth_head
+ftth_head: MCU_TARGET = atmega328p
+ftth_head: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>3' '-DNUM_LED_FLASHES=1' -DBAUD_RATE=57600 -DDOUBLE_SPEED -DCONDITION_VOLTAGE
+ftth_head: AVR_FREQ = 8000000L 
+ftth_head: LDSECTION  = --section-start=.text=0x7800
+ftth_head: $(PROGRAM)_ftth_head.hex $(PROGRAM)_ftth_head.lst
+
+ftth_head_isp: ftth_head
+ftth_head_isp: TARGET = ftth_head
+ftth_head_isp: MCU_TARGET = atmega328p
+ftth_head_isp: HFUSE = D2
+ftth_head_isp: LFUSE = FF
+ftth_head_isp: EFUSE = 05
+ftth_head_isp: isp
+
+
 isp: $(TARGET)
 	$(ISPFUSES)
 	sleep 2
