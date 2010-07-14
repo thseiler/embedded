@@ -15,6 +15,8 @@ void main (void) __attribute__ ((naked,section (".init9")));
 
 /* some variables */
 void (*app_start)(void) = 0x0000;
+uint8_t reset_reason = 0;
+
 
 /* main program starts here */
 void main(void)
@@ -23,7 +25,7 @@ void main(void)
 	SP=RAMEND;
 
 	/* here we learn how we were reset */
-	uint8_t reset_reason = MCUSR;
+	reset_reason = MCUSR;
 	MCUSR = 0;
 	
 	WDTCSR |= _BV(WDCE) | _BV(WDE);
