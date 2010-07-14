@@ -9,23 +9,19 @@
 
 /* function prototypes */
 void main (void) __attribute__ ((naked,section (".init9")));
-static char inline bootloader_skip_condition();
+static inline char bootloader_skip_condition();
 
 /* some variables */
 void (*app_start)(void) = 0x0000;
-uint8_t reset_reason = 0;
-
 
 /* main program starts here */
 void main(void)
 {	
+	/* this is needed because of the __attribute__ naked, section .init 9 */
 	asm volatile ( "clr __zero_reg__" );
 	SP=RAMEND;
-
-	/* here we learn how we were reset */
-	reset_reason = MCUSR;
-	MCUSR = 0;
 	
+	/* init watchdog */
 	WDTCSR |= _BV(WDCE) | _BV(WDE);
 	WDTCSR = 0;
 	
@@ -50,7 +46,7 @@ void main(void)
 
 #ifdef CONDITION_VOLTAGE
 
-static char inline bootloader_skip_condition() {
+static char bootloader_skip_condition() {
     unsigned char high, low;
     unsigned short voltage;
 
@@ -89,6 +85,12 @@ static char inline bootloader_skip_condition() {
 /* we only continue into the bootloader on an external reset */
 
 static char inline bootloader_skip_condition() {
+	uint8_t reset_reason = 0;
+
+	/* here we learn how we were reset */
+	reset_reason = MCUSR;
+	MCUSR = 0;
+
 	return ! (reset_reason & _BV(EXTRF));
 }
 
