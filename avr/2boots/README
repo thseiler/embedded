@@ -18,3 +18,66 @@ Features:
 * Supported are FAT16 formatted cards up to 1GB in size
 * All of ladyada's fixes to the original bootloader are included
  
+
+How to build
+------------
+simply install avr-gcc and lib-avr and run on of:
+
+(for atmega168:)
+# make lilypad (8Mhz)
+# make lilypad_resonator (8Mhz)
+# make pro8 (8Mhz)
+# make pro16 (16Mhz)
+# make pro20 (20Mhz)
+# make diecimila (16Mhz)
+# make ng (16Mhz)
+
+(for atmega328:)
+# make atmega328 (16Mhz)
+# make atmega328_pro8 (8Mhz)
+
+there is currently no support for atmega1280
+
+How to flash
+------------
+Connect your board to your ISP programmer of choice,
+Adapt the setting for avrdude in the Makefile (ISPTOOL, ISPPORT, ISPSPEED)
+and append '_isp' to your make command.
+
+I.E. 
+
+# make atmega328       <= compile
+# make atmega328_isp   <= flash
+
+
+How does the MMC/SD stuff work?
+-------------------------------
+
+The SD bootloader is disabled by default. If you want to enable it, 
+you will have to name your board. For this, simply load the included 
+Sketch "NameBoardSketch.pde", change the name you want to assign to
+the board and the run the sketch.
+
+The Sketch simply writes that name to the end of the EEPROM.
+
+If the bootloader finds a name in the EERPOM, it will init the SPI hardware, 
+search for an MMC / SD card and then look for a file that starts with
+board name, and ends in HEX.
+
+If your board is named "SAMPLE", then a file SAMPLE000.hex would work, as
+would SAMPLE001.hex etc...
+
+If no file was found, the bootloader will revert to the serial method.
+
+This allows you to have different firmware for different board on the same
+SD card. It also means that the bootloader will only use the SPI lines
+on boards that are named.
+
+Where can I find the .hex file in the Arduino IDE ?
+---------------------------------------------------
+
+It used to be in the applet folder. This changed with arduino-0018
+Have a look at this thread:
+http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1268011960
+
+
