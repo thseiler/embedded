@@ -30,6 +30,9 @@
 
 #include <avr/io.h>
 #include <inttypes.h>
+#if !defined(__AVR_ATmega168__) || !defined(__AVR_ATmega328P__)
+#include <avr/eeprom.h>  /* filename from eeprom */
+#endif
 #include "mmc_fat.h"
 #include "prog_flash.h"
 
@@ -250,6 +253,7 @@ static inline unsigned char fat16_init(void)
 }
 
 static struct _file_s {
+	char		name[11];
 	uint16_t startcluster;
  	uint16_t sector_counter;
  	uint32_t size;
@@ -287,6 +291,9 @@ static inline uint16_t fat16_readRootDirEntry(uint16_t entry_num) {
 	file.size = dir->filesize;
 	file.sector_counter = 0;
 	file.next = buff + 512;
+	/* copy name */
+	uint8_t i;
+	for (i = 0; i<11;i++) file.name[i] = dir->name[0];
 	
 	return dir->fstclust;
 }
@@ -401,17 +408,40 @@ static inline void read_hex_file(void) {
 
 void mmc_updater() {
 	uint16_t entrycounter = 0;
+	uint8_t i = 0;
+	uint8_t ch =0;
+	uint8_t match = 0;
    	if (fat16_init() == 0)
 	{	
-		while(fat16_readRootDirEntry(entrycounter++) != 0xFFFF) {
-			read_hex_file();
+		/* for each file in ROOT... */
+		for (entrycounter=0; entrycounter<512; entrycounter++)
+		{
+			/* skip deleted files and directries */
+			if (fat16_readRootDirEntry(entrycounter) == 0xFFFF) continue;
+			
+			/* compare filename to eeprom */
+			match = 1;
+			do {
+				/* read eeprom starting from end */
+#if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
+				while(EECR & (1<<EEPE));
+				EEAR = (uint16_t)(void *)E2END -i;
+				EECR |= (1<<EERE);
+				ch =EEDR;
+#else
+				ch = eeprom_read_byte((void *)E2END - i);
+#endif			
+				match &= (file.name[i] == ch);
+				i++;
+			} while(ch !=0xFF && i<8);
+			match &= i; /* an empty epromname does not match!*/
+			
+			/* if match, programm! */
+			if (match) {
+				/* if ending is .hex => write to flash */
+				if (file.name[8] == 'H' && file.name[9] == 'E' && file.name[10]=='X')
+				read_hex_file();
+			}		
 		}
-		//for (entrycounter=0; entrycounter<512; entrycounter++)
-		//{
-		//	if (fat16_readRootDirEntry(entrycounter) == 0xFFFF) continue;
-		//	
-		//	//if (entry->name[0] != 'B' || entry->name[1] != 'O' || entry->name[2] != 'X') continue;
-		//	read_hex_file();
-		//}
 	}
 }
