@@ -293,7 +293,7 @@ static inline uint16_t fat16_readRootDirEntry(uint16_t entry_num) {
 	file.next = buff + 512;
 	/* copy name */
 	uint8_t i;
-	for (i = 0; i<11;i++) file.name[i] = dir->name[0];
+	for (i = 0; i<11;i++) file.name[i] = dir->name[i];
 	
 	return dir->fstclust;
 }
@@ -411,6 +411,7 @@ void mmc_updater() {
 	uint8_t i = 0;
 	uint8_t ch =0;
 	uint8_t match = 0;
+	
    	if (fat16_init() == 0)
 	{	
 		/* for each file in ROOT... */
@@ -421,7 +422,8 @@ void mmc_updater() {
 			
 			/* compare filename to eeprom */
 			match = 1;
-			do {
+			i = 0;
+			while(i<8) {
 				/* read eeprom starting from end */
 #if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 				while(EECR & (1<<EEPE));
@@ -431,9 +433,13 @@ void mmc_updater() {
 #else
 				ch = eeprom_read_byte((void *)E2END - i);
 #endif			
-				match &= (file.name[i] == ch);
+				if (ch == 0xFF) {
+					break;
+				} else {	
+					match &= (file.name[i] == ch);
+				}
 				i++;
-			} while(ch !=0xFF && i<8);
+			}
 			match &= i; /* an empty epromname does not match!*/
 			
 			/* if match, programm! */
