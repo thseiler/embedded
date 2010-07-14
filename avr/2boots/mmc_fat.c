@@ -412,6 +412,17 @@ void mmc_updater() {
 	uint8_t ch =0;
 	uint8_t match = 0;
 	
+	/* only init the mmc if we have a named board */
+#if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
+				while(EECR & (1<<EEPE));
+				EEAR = (uint16_t)(void *)E2END -i;
+				EECR |= (1<<EERE);
+				ch =EEDR;
+#else
+				ch = eeprom_read_byte((void *)E2END - i);
+#endif		
+	if (ch == 0xFF) return;
+	
    	if (fat16_init() == 0)
 	{	
 		/* for each file in ROOT... */
@@ -447,6 +458,7 @@ void mmc_updater() {
 				/* if ending is .hex => write to flash */
 				if (file.name[8] == 'H' && file.name[9] == 'E' && file.name[10]=='X')
 				read_hex_file();
+				break;
 			}		
 		}
 	}
