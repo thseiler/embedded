@@ -53,13 +53,8 @@
 /* we need to read the flash */
 #include <avr/pgmspace.h>
 
-/* SW_MAJOR and MINOR needs to be updated from time to time to avoid warning message from AVR Studio */
-/* never allow AVR Studio to do an update !!!! */
-#define HW_VER	 0x02
-#define SW_MAJOR 0x01
-#define SW_MINOR 0x10
 
-/* use the global sektor buffer as scratch pad */
+/* use the global pagebuffer as scratch pad */
 
 /* some variables */
 union length_union {
