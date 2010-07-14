@@ -1,15 +1,20 @@
 2boots
 ------
 
-What is this ?
-
 This is a dual bootloader for Atmel AVR atmega chips. It combines 
 a serial bootloader and a mmc/sd card based one in the same 2kb of flash
 memory that is normally used by the arduino serial loader alone.
 
-Why does it exists ?
+You might ask Why? Well, I have quite a few arduino "in the field". 
+I can simply drag a .hex file to an SD card, insert it in an SD shield,
+and field-upgrade my boards without additional hardware. At the same time, 
+I can connect the serial port and start developping with the normal Arduino 
+IDE.
 
-Well, I have quite a few arduino "in the field". I can simply drag a .hex
-file to an SD card, insert it in an SD shield, and field-upgrade my boards
-without additional hardware.
-
+Features:
+* Uses just 2kb of flash, so it fits into the normal boot block of most atmegas
+* Serial bootloader is arduino compatible (avrdude / stk500v1)
+* MMC bootloader can read directly a *.hex file
+* Supported are FAT16 formatted cards up to 1GB in size
+* All of ladyada's fixes to the original bootloader are included
+ 
