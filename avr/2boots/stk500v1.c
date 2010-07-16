@@ -62,11 +62,6 @@ union length_union {
 	uint8_t  byte[2];
 } length;
 
-union address_union {
-	uint16_t word;
-	uint8_t  byte[2];
-} address;
-
 struct flags_struct { // changed from a packed struct to save some bytes
 	uint8_t eeprom;
 	uint8_t rampz;

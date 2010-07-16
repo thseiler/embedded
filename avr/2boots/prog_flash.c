@@ -33,35 +33,39 @@
 uint8_t pagebuffer[SPM_PAGESIZE];
 
 
+/* address buffer */
+union address_union address;
+
 /* access to flash memory------------------------------------------ */
 
 void write_flash_page()
 {
-	static unsigned int pagenumber = 0;
-	uint8_t *buf = pagebuffer;
-	uint16_t i;
+	//static unsigned int pagenumber = 0;
+	//uint8_t *buf = pagebuffer;
+	uint16_t i = 0;
 
 	eeprom_busy_wait ();
 
-	boot_page_erase (pagenumber);
+	boot_page_erase (address.word);
 	boot_spm_busy_wait ();      // Wait until the memory is erased.
-
+	
 	for (i=0; i<SPM_PAGESIZE; i+=2)
 	{
 		// Set up little-endian word.
 
-		uint16_t w = *buf++;
-		w += (*buf++) << 8;
+		uint16_t w = *((uint16_t*)(pagebuffer + i));
+		
+		//*buf++;
+		//w += (*buf++) << 8;
 
-		boot_page_fill (pagenumber + i, w);
+		boot_page_fill (address.word + i, w);
 	}
 
-	boot_page_write(pagenumber);     // Store buffer in flash page.
+	boot_page_write(address.word);     // Store buffer in flash page.
 	boot_spm_busy_wait();            // Wait until the memory is written.
 
 	// Reenable RWW-section again. We need this if we want to jump back
 	// to the application after bootloading.
 
 	boot_rww_enable ();	
-	pagenumber+=SPM_PAGESIZE;
 }

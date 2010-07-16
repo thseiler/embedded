@@ -35,4 +35,12 @@
 extern uint8_t pagebuffer[SPM_PAGESIZE];
 void write_flash_page();
 
+union address_union {
+	uint16_t word;
+	uint8_t  byte[2];
+};
+
+extern union address_union address;
+
+
 #endif
