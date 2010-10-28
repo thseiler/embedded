@@ -407,7 +407,7 @@ static inline void read_hex_file(void) {
 			if (file_read_byte() == ':') {
 				num_flash_words = file_read_hex();
 				file.next+=4; /* skip 4 bytes */
-				if (file_read_hex()) num_flash_words = 0;
+				if (file_read_hex()) break;
 			}
 		}
 	}
