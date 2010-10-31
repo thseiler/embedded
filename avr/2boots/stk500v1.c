@@ -235,12 +235,12 @@ static inline void handle_programmerVER(void) {
 }
 
 static inline void handle_addr(void) {
-		address.word = *((uint16_t*) &pagebuffer[0]);
+		address = *((uint16_t*) &pagebuffer[0]);
 #ifdef __AVR_ATmega128__
-		if (address.word>0x7FFF) flags.rampz = 1;		// No go with m256, FIXME
+		if (address>0x7FFF) flags.rampz = 1;		// No go with m256, FIXME
 		else flags.rampz = 0;
 #endif
-		address.word = address.word << 1;	        // address * 2 -> byte location
+		address = address << 1;	        // address * 2 -> byte location
 }
 
 static inline void handle_spi() {
@@ -269,14 +269,14 @@ static inline void handle_write() {
 		for(w=0;w<length.word;w++) {
 #if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 			while(EECR & (1<<EEPE));
-			EEAR = (uint16_t)(void *)address.word;
+			EEAR = (uint16_t)(void *)address;
 			EEDR = pagebuffer[w];
 			EECR |= (1<<EEMPE);
 			EECR |= (1<<EEPE);
 #else
-			eeprom_write_byte((void *)address.word,pagebuffer[w]);
+			eeprom_write_byte((void *)address,pagebuffer[w]);
 #endif			
-			address.word++;
+			address++;
 		}			
 	} else {					            //Write to FLASH one page at a time
 		write_flash_page();
@@ -289,22 +289,22 @@ static inline void handle_read() {
 		if (flags.eeprom) {	                        // Byte access EEPROM read
 #if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 			while(EECR & (1<<EEPE));
-			EEAR = (uint16_t)(void *)address.word;
+			EEAR = (uint16_t)(void *)address;
 			EECR |= (1<<EERE);
 			putch(EEDR);
 #else
-			putch(eeprom_read_byte((void *)address.word));
+			putch(eeprom_read_byte((void *)address));
 #endif
-			address.word++;
+			address++;
 		} else {
 #if defined __AVR_ATmega128__
-			if (!flags.rampz) putch(pgm_read_byte_near(address.word));
-			else putch(pgm_read_byte_far(address.word + 0x10000));
+			if (!flags.rampz) putch(pgm_read_byte_near(address));
+			else putch(pgm_read_byte_far(address + 0x10000));
 			// Hmmmm, yuck  FIXME when m256 arrvies
 #else
-			putch(pgm_read_byte_near(address.word));
+			putch(pgm_read_byte_near(address));
 #endif
-			address.word++;
+			address++;
 		}
 	}		
 }

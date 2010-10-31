@@ -34,7 +34,7 @@ uint8_t pagebuffer[SPM_PAGESIZE];
 
 
 /* address buffer */
-union address_union address;
+uint16_t address;
 
 /* access to flash memory------------------------------------------ */
 
@@ -46,7 +46,7 @@ void write_flash_page()
 
 	eeprom_busy_wait ();
 
-	boot_page_erase (address.word);
+	boot_page_erase (address);
 	boot_spm_busy_wait ();      // Wait until the memory is erased.
 	
 	for (i=0; i<SPM_PAGESIZE; i+=2)
@@ -58,10 +58,10 @@ void write_flash_page()
 		//*buf++;
 		//w += (*buf++) << 8;
 
-		boot_page_fill (address.word + i, w);
+		boot_page_fill (address + i, w);
 	}
 
-	boot_page_write(address.word);     // Store buffer in flash page.
+	boot_page_write(address);     // Store buffer in flash page.
 	boot_spm_busy_wait();            // Wait until the memory is written.
 
 	// Reenable RWW-section again. We need this if we want to jump back

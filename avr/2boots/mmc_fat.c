@@ -384,7 +384,7 @@ static inline void read_hex_file(void) {
 	// read file and convert it from intel hex and flash it
     uint8_t num_flash_words = 0;
 	uint8_t* out = pagebuffer;
-    address.word = 0;
+    address = 0;
 	while (file.size)
 	{
 		if (num_flash_words)
@@ -397,7 +397,7 @@ static inline void read_hex_file(void) {
 			if (out - pagebuffer == SPM_PAGESIZE) {
 			    // write page
 			    write_flash_page();
-			    address.word += SPM_PAGESIZE;
+			    address += SPM_PAGESIZE;
 				out = pagebuffer;
 			}
 		} 
