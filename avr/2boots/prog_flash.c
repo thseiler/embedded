@@ -40,8 +40,6 @@ uint16_t address;
 
 void write_flash_page()
 {
-	//static unsigned int pagenumber = 0;
-	//uint8_t *buf = pagebuffer;
 	uint16_t i = 0;
 
 	eeprom_busy_wait ();
@@ -52,12 +50,8 @@ void write_flash_page()
 	for (i=0; i<SPM_PAGESIZE; i+=2)
 	{
 		// Set up little-endian word.
-
 		uint16_t w = *((uint16_t*)(pagebuffer + i));
 		
-		//*buf++;
-		//w += (*buf++) << 8;
-
 		boot_page_fill (address + i, w);
 	}
 
