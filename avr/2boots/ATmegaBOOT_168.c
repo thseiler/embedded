@@ -49,7 +49,8 @@ void main(void)
 	stk500v1();
 #endif
 		
-	/* reset via watchdog */
+	/* we reset via watchdog */
+	/* in order to re-enable the RWW section (see prog_flash.c...) */
 	WDTCSR = _BV(WDE);
 	while (1); // 16 ms
 }
