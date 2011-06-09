@@ -67,7 +67,7 @@ static unsigned char send_cmd(void)
 	unsigned char result;
 	
 	/* wait for response */
-	for(i=0; i<128; i++) {
+	for(i=0; i<255; i++) {
 	
  		spi_send_byte(0xFF);
 		result = SPDR;
