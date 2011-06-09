@@ -101,7 +101,7 @@ uint8_t buff[512];
 static inline unsigned char mmc_init(void)
 {
 	MMC_DDR &= ~(1<<SPI_MISO);	//MMC Data Out -> Input
-	MMC_DDR |= 1<<SPI_CLK | 1<<SPI_MOSI | 1<<MMC_CS;	//MMC Chip Select -> Output
+	MMC_DDR |= 1<<SPI_CLK | 1<<SPI_MOSI | 1<<MMC_CS | 1<<SPI_SS;	//MMC Chip Select -> Output
 		
 	SPCR = 1<<SPE | 1<<MSTR | SPI_INIT_CLOCK; //SPI Enable, SPI Master Mode
 	

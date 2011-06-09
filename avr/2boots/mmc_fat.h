@@ -61,9 +61,11 @@ extern uint8_t buff[512];
 #define MMC_PORT PORTB
 #define MMC_DDR  DDRB
 
-#define SPI_MISO	PB4		//DataOut of MMC 
+#define SPI_MISO	PB4		//DataOut of MMC
 #define SPI_MOSI	PB3		//DataIn of  MMC
 #define SPI_CLK  	PB5		//Clock of MMC
+#define SPI_SS          PB2             //SS pin of SPI interface
+
 #define MMC_CS		PB2		//ChipSelect of MMC
 
 //Clockrate while initialisation / reading / writing
