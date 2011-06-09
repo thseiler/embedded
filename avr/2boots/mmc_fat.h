@@ -56,17 +56,19 @@ extern uint8_t buff[512];
  #define SPDR	SPDR0
 #endif
 
-//Port & Pin definitions. Be sure to use a pin of the same port as SPI for CS (Chip Select) !
-//Settings below are recommended for a MEGA16
-#define MMC_PORT PORTB
-#define MMC_DDR  DDRB
-
+//Port & Pin definitions.
+//Settings below are recommended for a MEGA168 and MEGA328
+#define SPI_PORT PORTB
+#define SPI_DDR  DDRB
 #define SPI_MISO	PB4		//DataOut of MMC
 #define SPI_MOSI	PB3		//DataIn of  MMC
 #define SPI_CLK  	PB5		//Clock of MMC
 #define SPI_SS          PB2             //SS pin of SPI interface
 
-#define MMC_CS		PB2		//ChipSelect of MMC
+// This is the Pin, Port and DDR of the Chip Select to the MMC... 
+#define MMC_CS		PB2		//also change MMC_PORT and MMC_DDR acordingly
+#define MMC_PORT        PORTB
+#define MMC_DDR         DDRB
 
 //Clockrate while initialisation / reading / writing
 #define SPI_INIT_CLOCK 1<<SPR1 | 1<<SPR0
