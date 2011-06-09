@@ -163,7 +163,7 @@ atmega328: $(PROGRAM)_atmega328.hex
 atmega328_isp: atmega328
 atmega328_isp: TARGET = atmega328
 atmega328_isp: MCU_TARGET = atmega328p
-atmega328_isp: HFUSE = D2  
+atmega328_isp: HFUSE = D2
 atmega328_isp: LFUSE = FF
 atmega328_isp: EFUSE = 05
 atmega328_isp: isp
