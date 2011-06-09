@@ -58,13 +58,5 @@ void write_flash_page()
 	boot_page_write(address);     // Store buffer in flash page.
 	boot_spm_busy_wait();            // Wait until the memory is written.
 
-	// Normally, we should re-enable the RWW-section here
-	// in order to call the application at bootloader exit.
-	// 
-	//boot_rww_enable ();	
-	// 
-	// However, as we are going to exit the bootloader via
-	// Watchdog - Reset, we can skip this, saving another
-	// 8 bytes :)
-
+	boot_rww_enable ();
 }
