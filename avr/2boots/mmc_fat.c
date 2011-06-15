@@ -101,7 +101,8 @@ uint8_t buff[512];
 static inline unsigned char mmc_init(void)
 {
 	SPI_DDR &= ~(1<<SPI_MISO);	//SPI Data Out -> Input
-	SPI_DDR |= 1<<SPI_CLK | 1<<SPI_MOSI | 1<<SPI_SS; // SPI Data -> Output
+	SPI_DDR  |= 1<<SPI_CLK | 1<<SPI_MOSI | 1<<SPI_SS; // SPI Data -> Output
+	SPI_PORT |= 1<<SPI_SS;   //PB2 output: High (deselect other SPI chips)
 
 	MMC_DDR |= 1<<MMC_CS; 	//MMC Chip Select -> Output
 	
