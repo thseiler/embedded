@@ -39,6 +39,8 @@
 
 #define MMC_CMD0_RETRY	(unsigned char)16
 
+#ifdef MMC_CS
+
 static unsigned char cmd[6];
 
 /* ---[ SPI Interface ]---------------------------------------------- */
@@ -101,11 +103,13 @@ uint8_t buff[512];
 */
 static inline unsigned char mmc_init(void)
 {
-	SPI_DDR &= ~(1<<SPI_MISO);	//SPI Data Out -> Input
-	SPI_DDR  |= 1<<SPI_CLK | 1<<SPI_MOSI | 1<<SPI_SS; // SPI Data -> Output
+	// the default after reset is already input
+	//SPI_DDR &= ~(1<<SPI_MISO);	//SPI Data Out -> Input
 	SPI_PORT |= 1<<SPI_SS;   //PB2 output: High (deselect other SPI chips)
 
+	SPI_DDR  |= 1<<SPI_CLK | 1<<SPI_MOSI | 1<<SPI_SS; // SPI Data -> Output
 	MMC_DDR |= 1<<MMC_CS; 	//MMC Chip Select -> Output
+	
 	
 	SPCR = 1<<SPE | 1<<MSTR | SPI_INIT_CLOCK; //SPI Enable, SPI Master Mode
 	
@@ -456,3 +460,6 @@ void mmc_updater() {
 		}	
 	}
 }
+
+#endif
+

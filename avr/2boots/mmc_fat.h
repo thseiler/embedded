@@ -65,10 +65,11 @@ extern uint8_t buff[512];
 #define SPI_CLK  	PB5		//Clock of MMC
 #define SPI_SS          PB2             //SS pin of SPI interface
 
-// This is the Pin, Port and DDR of the Chip Select to the MMC... 
-#define MMC_CS		PB2		//also change MMC_PORT and MMC_DDR acordingly
-#define MMC_PORT        PORTB
-#define MMC_DDR         DDRB
+// These define the Pin, Port and DDR of the Chip Select to the MMC...
+// Used to be defined here, but is now in the Makefile 
+//#define MMC_CS		PB2		//also change MMC_PORT and MMC_DDR acordingly
+//#define MMC_PORT        PORTB
+//#define MMC_DDR         DDRB
 
 //Clockrate while initialisation / reading / writing
 #define SPI_INIT_CLOCK 1<<SPR1 | 1<<SPR0
