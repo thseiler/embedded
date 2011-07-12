@@ -33,6 +33,7 @@
 #if !defined(__AVR_ATmega168__) || !defined(__AVR_ATmega328P__)
 #include <avr/eeprom.h>  /* filename from eeprom */
 #endif
+#include "board.h"
 #include "mmc_fat.h"
 #include "prog_flash.h"
 

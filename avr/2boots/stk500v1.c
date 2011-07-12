@@ -29,6 +29,7 @@
 /**********************************************************/
 
 #include <inttypes.h>
+#include "board.h"
 #include "stk500v1.h"
 
 /* define this to loose a bit compatibility, but save a few bytes */

@@ -96,6 +96,7 @@ board-ftthcont: MMC_CSS = PB2
 	@echo 
 	@echo ----------[$@]-------------------
 	@echo Compiling 2boots for $(BOARD) with $(MCU) @ $(subst 000L,,$(FCPU))kHz and MMC $(MMC_CS)...
+	echo "#include \"$(BOARD).h\"" > board.h
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SRC) -o build/$@ $(LIBS)
 	@echo
 	@echo sucessfully compiled to build/$@
