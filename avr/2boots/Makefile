@@ -1,227 +1,135 @@
-# Makefile for ATmegaBOOT
-# E.Lins, 18.7.2005
-# $Id$
+# 2boots Makefile
+# (c) 2011 thomas seiler      (thseiler@gmail.com)
 #
-# Instructions
-#
-# To make bootloader .hex file:
-# make diecimila
-# make lilypad
-# make ng
-# etc...
-#
-# To burn bootloader .hex file:
-# make diecimila_isp
-# make lilypad_isp
-# make ng_isp
-# etc...
 
+# 'all' is the default target: 
+.PHONY: all 
+
+# .hex files are considered intermediary files, but we want to keep them, so
+# we declare secondary, which tells make to keep intermediary files...
 .SECONDARY:
 
-# program name should not be changed...
-PROGRAM    = ATmegaBOOT_168
+# setup avr-gcc to compile very space efficient
+CC       = avr-gcc
+OBJCOPY  = avr-objcopy
+OBJDUMP  = avr-objdump
+OPTIMIZE = -Os -funsigned-char -fno-split-wide-types -fno-inline-small-functions -mcall-prologues -ffunction-sections -fdata-sections -ffreestanding -combine -fwhole-program -fno-jump-tables
+AVRSIZE  = avr-size
 
-# enter the parameters for the avrdude isp tool
-ISPTOOL	   = avrispmkII
-ISPPORT	   = usb
-ISPSPEED   = -b 115200
+override CFLAGS  = -g -Wall $(OPTIMIZE) -mmcu=$(MCU) -DF_CPU=$(FCPU) $(DEFS)
+override LDFLAGS = -Wl,$(LDSECTION) -Wl,--relax -nostartfiles -Wl,-gc-sections
 
-MCU_TARGET = atmega168
-LDSECTION  = --section-start=.text=0x3800
+# these are our actual source files
+# the BOARD variable will be replaced later, depending on which board is beeing compiled
+SRC = $(BOARD).c mmc_fat.c stk500v1.c prog_flash.c
 
-# the efuse should really be 0xf8; since, however, only the lower
-# three bits of that byte are used on the atmega168, avrdude gets
-# confused if you specify 1's for the higher bits, see:
-# http://tinker.it/now/2007/02/24/the-tale-of-avrdude-atmega168-and-extended-bits-fuses/
+# the 'all' rule should build 2boots for all supported boards
+# to create one target per board-*.c file we use a $(wildcard... ) rule
+all: buildfolder $(subst .c,,$(wildcard board-*.c)) size-report 
+
+# here we create the 'build' folder in case it does not exist
+buildfolder:
+	[ -d build ] || mkdir build
+
+#each board can list all possible combinations for FCPUS, MCUS, and MMC_CS here
+#these variables are target specific, so each board can define a different value
+#(see http://www.gnu.org/software/make/manual/make.html#Target_002dspecific)
 #
-# similarly, the lock bits should be 0xff instead of 0x3f (to
-# unlock the bootloader section) and 0xcf instead of 0x0f (to
-# lock it), but since the high two bits of the lock byte are
-# unused, avrdude would get confused.
+# To compile 2boot twice for a given board (i.e. two frequencies), simply
+# separate the arguments with a space
 
-ISPFUSES    = avrdude -c $(ISPTOOL) -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
--e -u -U lock:w:0x3f:m -U efuse:w:0x$(EFUSE):m -U hfuse:w:0x$(HFUSE):m -U lfuse:w:0x$(LFUSE):m
-ISPFLASH    = avrdude -c $(ISPTOOL) -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
--U flash:w:$(PROGRAM)_$(TARGET).hex -U lock:w:0x0f:m
+#default for any unknown board
+board-%: FCPUS = 16000000L
+board-%: MCUS = atmega328p
+board-%: MMC_CSS = disabled
 
-STK500 = "C:\Program Files\Atmel\AVR Tools\STK500\Stk500.exe"
-STK500-1 = $(STK500) -e -d$(MCU_TARGET) -pf -vf -if$(PROGRAM)_$(TARGET).hex \
--lFF -LFF -f$(HFUSE)$(LFUSE) -EF8 -ms -q -cUSB -I200kHz -s -wt
-STK500-2 = $(STK500) -d$(MCU_TARGET) -ms -q -lCF -LCF -cUSB -I200kHz -s -wt
+#arduino
+board-arduino: FCPUS = 8000000L 16000000L
+board-arduino: MCUS = atmega168 atmega328p
+board-arduino: MMC_CSS = disabled PD4
+
+#lilypad
+board-lilypad: FCPUS = 8000000L
+board-lilypad: MCUS = atmega168
+board-lilypad: MMC_CSS = disabled
+
+#stalker:
+board-stalker: FCPUS = 8000000L
+board-stalker: MCUS = atmega328p
+board-stalker: MMC_CSS = PB1 PB2
+
+#ftthhead
+board-ftthhead: FCPUS = 8000000L
+board-ftthhead: MCUS = atmega328p
+board-ftthhead: MMC_CSS = disabled
+
+#ftthcont
+board-ftthcont: FCPUS = 8000000L
+board-ftthcont: MCUS  = atmega328p
+board-ftthcont: MMC_CSS = PB2
 
 
-SRC        = $(PROGRAM).c mmc_fat.c stk500v1.c prog_flash.c
-OPTIMIZE   = -Os -funsigned-char -fno-split-wide-types -fno-inline-small-functions -mcall-prologues -ffunction-sections -fdata-sections -ffreestanding -combine -fwhole-program -fno-jump-tables
 
-DEFS       = 
-LIBS       =
+# set certain variables per MCU or MCU-FREQ:
 
-CC         = avr-gcc
+#atmega168:
+2boots-atmega168%:  LDSECTION := --section-start=.text=0x3800
 
-# Override is only needed by avr-lib build system.
+#atmega328p:
+2boots-atmega328p%:  LDSECTION := --section-start=.text=0x7800 
+2boots-atmega328p%:  DEFS += -DBAUD_RATE=57600
+2boots-atmega328p-8000000L%: DEFS += -DDOUBLE_SPEED
 
-override CFLAGS        = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) -DF_CPU=$(AVR_FREQ) $(DEFS)
-override LDFLAGS       = -Wl,$(LDSECTION) -Wl,--relax -nostartfiles -Wl,-gc-sections
-#override LDFLAGS       = -Wl,-Map,$(PROGRAM).map,$(LDSECTION)
+#atmega1280:
+2boots-atmega1280%: LDSECTION := --section-start=.text=0x1F000 
 
-OBJCOPY        = avr-objcopy
-OBJDUMP        = avr-objdump
 
-all:
+# This rule finally builds 2boots.
+# The idea here is to learn the configuration from the make target name
+# This is done with the help of good old shell
+2boots-%: MCU =  $(shell echo $@ | cut -d - -f 2 )
+2boots-%: FCPU = $(shell echo $@ | cut -d - -f 3 )
+2boots-%: MMC_CS = $(shell echo $@ | cut -d - -f 4)
+2boots-%: BOARD = $(shell echo $(subst .hex,,$@) | awk 'BEGIN {FS="-"} { for (f=5;f<=NF;f++) { printf($$f); if (f != NF) { printf("-") } } }' )
+2boots-%: DEFS += $(if $(findstring disabled,$(MMC_CS)) , , -DMMC_CS=$(MMC_CS) -DMMC_PORT=PORT$(shell echo $(MMC_CS) | cut -c 2) -DMMC_DDR=DDR$(shell echo $(MMC_CS) | cut -c 2 )) 
+2boots-%:
+	@echo 
+	@echo ----------[$@]-------------------
+	@echo Compiling 2boots for $(BOARD) with $(MCU) @ $(subst 000L,,$(FCPU))kHz and MMC $(MMC_CS)...
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SRC) -o build/$@ $(LIBS)
+	@echo
+	@echo sucessfully compiled to build/$@
+	@$(AVRSIZE) build/$@
+	@echo 
 
-lilypad: TARGET = lilypad
-lilypad: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>1' '-DNUM_LED_FLASHES=3'
-lilypad: AVR_FREQ = 8000000L
-lilypad: $(PROGRAM)_lilypad.hex
 
-lilypad_isp: lilypad
-lilypad_isp: TARGET = lilypad
-lilypad_isp: HFUSE = DD
-lilypad_isp: LFUSE = E2
-lilypad_isp: EFUSE = 00
-lilypad_isp: isp
-
-lilypad_resonator: TARGET = lilypad_resonator
-lilypad_resonator: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>4' '-DNUM_LED_FLASHES=3'
-lilypad_resonator: AVR_FREQ = 8000000L
-lilypad_resonator: $(PROGRAM)_lilypad_resonator.hex
-
-lilypad_resonator_isp: lilypad_resonator
-lilypad_resonator_isp: TARGET = lilypad_resonator
-lilypad_resonator_isp: HFUSE = DD
-lilypad_resonator_isp: LFUSE = C6
-lilypad_resonator_isp: EFUSE = 00
-lilypad_resonator_isp: isp
-
-pro8: TARGET = pro_8MHz
-pro8: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>4' '-DNUM_LED_FLASHES=1' '-DWATCHDOG_MODS'
-pro8: AVR_FREQ = 8000000L
-pro8: $(PROGRAM)_pro_8MHz.hex
-
-pro8_isp: pro8
-pro8_isp: TARGET = pro_8MHz
-pro8_isp: HFUSE = DD
-pro8_isp: LFUSE = C6
-pro8_isp: EFUSE = 00
-pro8_isp: isp
-
-pro16: TARGET = pro_16MHz
-pro16: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>4' '-DNUM_LED_FLASHES=1' '-DWATCHDOG_MODS'
-pro16: AVR_FREQ = 16000000L
-pro16: $(PROGRAM)_pro_16MHz.hex
-
-pro16_isp: pro16
-pro16_isp: TARGET = pro_16MHz
-pro16_isp: HFUSE = DD
-pro16_isp: LFUSE = C6
-pro16_isp: EFUSE = 00
-pro16_isp: isp
-
-pro20: TARGET = pro_20mhz
-pro20: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>4' '-DNUM_LED_FLASHES=1' '-DWATCHDOG_MODS'
-pro20: AVR_FREQ = 20000000L
-pro20: $(PROGRAM)_pro_20mhz.hex
-
-pro20_isp: pro20
-pro20_isp: TARGET = pro_20mhz
-pro20_isp: HFUSE = DD
-pro20_isp: LFUSE = C6
-pro20_isp: EFUSE = 00
-pro20_isp: isp
-
-diecimila: TARGET = diecimila
-diecimila: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>4' '-DNUM_LED_FLASHES=1'
-diecimila: AVR_FREQ = 16000000L 
-diecimila: $(PROGRAM)_diecimila.hex
-
-diecimila_isp: diecimila
-diecimila_isp: TARGET = diecimila
-diecimila_isp: HFUSE = DD
-diecimila_isp: LFUSE = FF
-diecimila_isp: EFUSE = 00
-diecimila_isp: isp
-
-ng: TARGET = ng
-ng: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>1' '-DNUM_LED_FLASHES=3'
-ng: AVR_FREQ = 16000000L
-ng: $(PROGRAM)_ng.hex
-
-ng_isp: ng
-ng_isp: TARGET = ng
-ng_isp: HFUSE = DD
-ng_isp: LFUSE = FF
-ng_isp: EFUSE = 00
-ng_isp: isp
-
-atmega328: TARGET = atmega328
-atmega328: MCU_TARGET = atmega328p
-atmega328: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>4' '-DNUM_LED_FLASHES=1' -DBAUD_RATE=57600
-atmega328: AVR_FREQ = 16000000L 
-atmega328: LDSECTION  = --section-start=.text=0x7800
-atmega328: $(PROGRAM)_atmega328.hex
-
-atmega328_isp: atmega328
-atmega328_isp: TARGET = atmega328
-atmega328_isp: MCU_TARGET = atmega328p
-atmega328_isp: HFUSE = D2
-atmega328_isp: LFUSE = FF
-atmega328_isp: EFUSE = 05
-atmega328_isp: isp
-
-atmega328_pro8: TARGET = atmega328_pro_8MHz
-atmega328_pro8: MCU_TARGET = atmega328p
-atmega328_pro8: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>3' '-DNUM_LED_FLASHES=1' -DBAUD_RATE=57600 -DDOUBLE_SPEED
-atmega328_pro8: AVR_FREQ = 8000000L 
-atmega328_pro8: LDSECTION  = --section-start=.text=0x7800
-atmega328_pro8: $(PROGRAM)_atmega328_pro_8MHz.hex $(PROGRAM)_atmega328_pro_8MHz.lst
-
-atmega328_pro8_isp: atmega328_pro8
-atmega328_pro8_isp: TARGET = atmega328_pro_8MHz
-atmega328_pro8_isp: MCU_TARGET = atmega328p
-atmega328_pro8_isp: HFUSE = D2
-atmega328_pro8_isp: LFUSE = FF
-atmega328_pro8_isp: EFUSE = 05
-atmega328_pro8_isp: isp
-
-mega: TARGET = atmega1280
-mega: MCU_TARGET = atmega1280
-mega: CFLAGS += '-DMAX_TIME_COUNT=F_CPU>>4' '-DNUM_LED_FLASHES=0' -DBAUD_RATE=57600
-mega: AVR_FREQ = 16000000L 
-mega: LDSECTION  = --section-start=.text=0x1F000
-mega: $(PROGRAM)_atmega1280.hex
-
-mega_isp: mega
-mega_isp: TARGET = atmega1280
-mega_isp: MCU_TARGET = atmega1280
-mega_isp: HFUSE = DA
-mega_isp: LFUSE = FF
-mega_isp: EFUSE = F5
-mega_isp: isp
-
-isp: $(TARGET)
-	$(ISPFUSES)
-	sleep 2
-	$(ISPFLASH)
-
-isp-stk500: $(PROGRAM)_$(TARGET).hex
-	$(STK500-1)
-	$(STK500-2)
-
-%.elf: $(SRC)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ $(LIBS) 
-
-clean:
-	rm -rf *.o *.elf *.lst *.map *.sym *.lss *.eep *.srec *.bin *.hex
+# here come a few handy pattern rules for objcopy / objdump, 
+# just in case someone wants a different format...
 
 %.lst: %.elf
-	$(OBJDUMP) -h -S $< > $@
+	$(OBJDUMP) -h -S build/$< > build/$@
 
-%.hex: %.elf
-	$(OBJCOPY) -j .text -j .data -O ihex $< $@
+%.hex: %.elf %.lst
+	$(OBJCOPY) -j .text -j .data -O ihex build/$< build/$@	
 
 %.srec: %.elf
-	$(OBJCOPY) -j .text -j .data -O srec $< $@
+	$(OBJCPOY) -j .text -j .data -O srec build/$< build/$@
 
 %.bin: %.elf
-	$(OBJCOPY) -j .text -j .data -O binary $< $@
-	
+	$(OBJCPOY) -j .text -j .data -O binary build/$< build/$@
+
+# this one is handy, too
+clean:
+	rm -rf build/*.elf build/*.lst build/*.srec build/*.bin build/*.hex
+
+# this helps to keep track of used / free space
+size-report:
+	@echo -----[Size reports]----------------------------------------
+	@echo 
+	@$(AVRSIZE) build/*.hex
+
+# This section finally creates targets for all combinations of boards, mcus, mmc-cs and frequencies:
+# because of evil make magic (secondary expansion) it should be the last rule
+board-%: TARGETS = $(foreach currentmcu, $(MCUS) , $(foreach currentfreq, $(FCPUS), $(foreach currentmmccs, $(MMC_CSS), 2boots-$(currentmcu)-$(currentfreq)-$(currentmmccs)-$@.hex ) ) )
+.SECONDEXPANSION:
+board-%:  $$(TARGETS) ;
