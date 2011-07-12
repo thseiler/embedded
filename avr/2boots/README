@@ -1,9 +1,10 @@
 2boots
 ------
 
-This is a dual bootloader for Atmel AVR atmega chips. It combines 
-a serial bootloader and a mmc/sd card based one in the same 2kb of flash
-memory that is normally used by the arduino serial loader alone.
+This is a proof-of-concept dual bootloader for Atmel AVR atmega chips.
+It combines a serial bootloader and a mmc/sd card based one in the 
+same 2kb of flash memory that is normally used by the arduino serial 
+loader alone.
 
 You might ask Why? Well, I have quite a few arduino "in the field". 
 I can simply drag a .hex file to an SD card, insert it in an SD shield,
@@ -15,39 +16,25 @@ Features:
 * Uses just 2kb of flash, so it fits into the normal boot block of most atmegas
 * Serial bootloader is arduino compatible (avrdude / stk500v1)
 * MMC bootloader can read directly a *.hex file
-* Supported are FAT16 formatted cards up to 1GB in size
+* Supported are FAT16 formatted cards up to 2GB in size (no SDHC)
 * All of ladyada's fixes to the original bootloader are included
  
 
 How to build
 ------------
-simply install avr-gcc and lib-avr and run on of:
+On Linux, simply install avr-gcc, lib-avr and avrdude, then run:
 
-(for atmega168:)
-# make lilypad (8Mhz)
-# make lilypad_resonator (8Mhz)
-# make pro8 (8Mhz)
-# make pro16 (16Mhz)
-# make pro20 (20Mhz)
-# make diecimila (16Mhz)
-# make ng (16Mhz)
+# make
 
-(for atmega328:)
-# make atmega328 (16Mhz)
-# make atmega328_pro8 (8Mhz)
+This should build 2boots for all supported boards, you can find the .hex
+files in the ./build subfolder
 
-there is currently no support for atmega1280
 
 How to flash
 ------------
 Connect your board to your ISP programmer of choice,
 Adapt the setting for avrdude in the Makefile (ISPTOOL, ISPPORT, ISPSPEED)
 and append '_isp' to your make command.
-
-I.E. 
-
-# make atmega328       <= compile
-# make atmega328_isp   <= flash
 
 
 How does the MMC/SD stuff work?
