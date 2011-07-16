@@ -46,12 +46,11 @@ void write_flash_page()
 
 	boot_page_erase (address);
 	boot_spm_busy_wait ();      // Wait until the memory is erased.
-	
+
 	for (i=0; i<SPM_PAGESIZE; i+=2)
 	{
 		// Set up little-endian word.
 		uint16_t w = *((uint16_t*)(pagebuffer + i));
-		
 		boot_page_fill (address + i, w);
 	}
 
