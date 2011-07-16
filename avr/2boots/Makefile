@@ -41,17 +41,17 @@ buildfolder:
 #default for any unknown board
 board-%: FCPUS = 16000000L
 board-%: MCUS = atmega328p
-board-%: MMC_CSS = disabled
+board-%: MMC_CSS = nommc
 
 #arduino
 board-arduino: FCPUS = 8000000L 16000000L
 board-arduino: MCUS = atmega168 atmega328p
-board-arduino: MMC_CSS = disabled PD4
+board-arduino: MMC_CSS = nommc PD4
 
 #lilypad
 board-lilypad: FCPUS = 8000000L
 board-lilypad: MCUS = atmega168
-board-lilypad: MMC_CSS = disabled
+board-lilypad: MMC_CSS = nommc
 
 #stalker:
 board-stalker: FCPUS = 8000000L
@@ -61,7 +61,7 @@ board-stalker: MMC_CSS = PB1 PB2
 #ftthhead
 board-ftthhead: FCPUS = 8000000L
 board-ftthhead: MCUS = atmega328p
-board-ftthhead: MMC_CSS = disabled
+board-ftthhead: MMC_CSS = nommc
 
 #ftthcont
 board-ftthcont: FCPUS = 8000000L
@@ -91,12 +91,16 @@ board-ftthcont: MMC_CSS = PB2
 2boots-%: FCPU = $(shell echo $@ | cut -d - -f 3 )
 2boots-%: MMC_CS = $(shell echo $@ | cut -d - -f 4)
 2boots-%: BOARD = $(shell echo $(subst .hex,,$@) | awk 'BEGIN {FS="-"} { for (f=5;f<=NF;f++) { printf($$f); if (f != NF) { printf("-") } } }' )
-2boots-%: DEFS += $(if $(findstring disabled,$(MMC_CS)) , , -DMMC_CS=$(MMC_CS) -DMMC_PORT=PORT$(shell echo $(MMC_CS) | cut -c 2) -DMMC_DDR=DDR$(shell echo $(MMC_CS) | cut -c 2 )) 
+2boots-%: DEFS += $(if $(findstring nommc,$(MMC_CS)) , , -DMMC_CS=$(MMC_CS) -DMMC_PORT=PORT$(shell echo $(MMC_CS) | cut -c 2) -DMMC_DDR=DDR$(shell echo $(MMC_CS) | cut -c 2 )) 
 2boots-%:
 	@echo 
 	@echo ----------[$@]-------------------
-	@echo Compiling 2boots for $(BOARD) with $(MCU) @ $(subst 000L,,$(FCPU))kHz and MMC $(MMC_CS)...
-	echo "#include \"$(BOARD).h\"" > board.h
+	@echo Compiling 2boots for: 
+	@echo - $(BOARD) 
+	@echo - MCU:$(MCU) @ $(subst 000L,,$(FCPU))kHz
+	@echo - MMC: $(MMC_CS)
+	@echo
+	@echo "#include \"$(BOARD).h\"" > board.h
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SRC) -o build/$@ $(LIBS)
 	@echo
 	@echo sucessfully compiled to build/$@
