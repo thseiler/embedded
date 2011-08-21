@@ -28,4 +28,19 @@
 #ifndef _board_h_
 #define _board_h_
 
+/* define BAUD_RATE
+ * use 57600 if the processor is a atmega328p or atmega1280
+ * use 19200 otherwise (atmega8 and atmega168)
+ */
+#if   defined(__AVR_ATmega328P__) || defined(__AVR_ATmega1280)
+#define BAUD_RATE 57600
+#else
+#define BAUD_RATE 19200
+#endif
+
+
+
+
+
+
 #endif

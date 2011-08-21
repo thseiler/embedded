@@ -41,10 +41,7 @@
 /* define this to loose a bit compatibility, but save a few bytes */
 #define MINIMALISTIC
 
-/* set the default UART baud rate */
-#ifndef BAUD_RATE
-#define BAUD_RATE   19200
-#endif
+/* BAUD_RATE must be defined in board.h */
 
 /* for the SIGNATURE_X macros, and uart pins */
 #include <avr/io.h>
