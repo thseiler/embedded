@@ -28,12 +28,6 @@
 /* http://www.fsf.org/licenses/gpl.txt                    */
 /**********************************************************/
 
-// TODO: This should be a per-board constant, or even come 
-//       from the Makefile. Its here so that we can compile
-#ifndef MAX_TIME_COUNT
-#define MAX_TIME_COUNT F_CPU>>4
-#endif
-
 #include <inttypes.h>
 #include "board.h"
 #include "stk500v1.h"
