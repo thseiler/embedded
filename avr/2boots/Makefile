@@ -70,15 +70,13 @@ board-ftthcont: MMC_CSS = PB2
 
 
 
-# set certain variables per MCU or MCU-FREQ:
+# set certain variables per MCU
 
 #atmega168:
 2boots-atmega168%:  LDSECTION := --section-start=.text=0x3800
 
 #atmega328p:
 2boots-atmega328p%:  LDSECTION := --section-start=.text=0x7800 
-2boots-atmega328p%:  DEFS += -DBAUD_RATE=57600
-2boots-atmega328p-8000000L%: DEFS += -DDOUBLE_SPEED
 
 #atmega1280:
 2boots-atmega1280%: LDSECTION := --section-start=.text=0x1F000 
