@@ -1,0 +1,5 @@
+19. September 2011
+------------------
+
+* New Makefile, build should be more flexible now
+* New flash.sh script, takes care of flashing outside of Makefile
