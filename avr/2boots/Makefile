@@ -90,7 +90,8 @@ board-ftthcont: MMC_CSS = PB2
 2boots-%: MMC_CS = $(shell echo $@ | cut -d - -f 4)
 2boots-%: BOARD = $(shell echo $(subst .hex,,$@) | awk 'BEGIN {FS="-"} { for (f=5;f<=NF;f++) { printf($$f); if (f != NF) { printf("-") } } }' )
 2boots-%: DEFS += $(if $(findstring nommc,$(MMC_CS)) , , -DMMC_CS=$(MMC_CS) -DMMC_PORT=PORT$(shell echo $(MMC_CS) | cut -c 2) -DMMC_DDR=DDR$(shell echo $(MMC_CS) | cut -c 2 )) 
-2boots-%: FILENAME = 2boots-$(subst board-,,$(BOARD))-$(MCU)-$(FCPU)-$(MMC_CS).hex
+2boots-%: ELFNAME = 2boots-$(subst board-,,$(BOARD))-$(MCU)-$(FCPU)-$(MMC_CS).elf
+2boots-%: HEXNAME = 2boots-$(subst board-,,$(BOARD))-$(MCU)-$(FCPU)-$(MMC_CS).hex
 2boots-%:
 	@echo 
 	@echo ----------[$@]-------------------
@@ -100,10 +101,11 @@ board-ftthcont: MMC_CSS = PB2
 	@echo - MMC: $(MMC_CS)
 	@echo
 	@echo "#include \"$(BOARD).h\"" > board.h
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SRC) -o build/$(FILENAME) $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SRC) -o build/$(ELFNAME) $(LIBS)
 	@echo
-	@echo sucessfully compiled to build/$(FILENAME)
-	@$(AVRSIZE) build/$(FILENAME)
+	@echo sucessfully compiled to build/$(ELFNAME)
+	@$(AVRSIZE) build/$(ELFNAME)
+	$(OBJCOPY) -j .text -j .data -O ihex build/$(ELFNAME) build/$(HEXNAME)	
 	@echo 
 
 
