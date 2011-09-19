@@ -8,10 +8,10 @@ void setup() {
   Serial.begin(9600);
 
   /* this is the name you give to the board */
-  char name[] = "BOX";
+  char name[] = "ARDUINO";
   
   /* copy name to eeprom in the inverse        */
-  /* order that is expected by the bootloader  */
+  /* order, as the bootloader is expecting it that way */
   while (name[i] && i<8) {
     EEPROM.write(E2END - i, name[i]);
     i++;
