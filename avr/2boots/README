@@ -20,6 +20,58 @@ Features:
 * All of ladyada's fixes to the original bootloader are included
  
 
+How does the MMC/SD stuff work?
+-------------------------------
+
+The MMC/SD part of the bootloader is disabled by default. This is actually
+a safety feature, as people do not generally expect their bootloader to
+output random signals on the SPI lines during boot-up.
+
+2boots will actually first look at the end of the EEPROM. Only if it finds
+a name there, then 2boots will configure the SPI bus and try to init the
+SD card. 
+
+So if you want to enable the MMC part of 2boots, you will have to give
+your board a name. For this, simply load the included Sketch 
+"NameBoardSketch.pde", optionally edit the name, and then run the sketch.
+The sketch simply writes that name to the end of the EEPROM, in inverse order.
+The name can not be longer than 8 characters. The default is "ARDUINO".
+
+Now, prepare an SD card with the first partition: FAT16 and less than 2GB
+in size. Copy the hex file directly into the root folder of the SD Card
+and give it the same name as your board: i.e. ARDUINO.HEX. 
+
+To run the upgrade, simply insert the SD card with the .hex file into
+your Arduino, power on, and press the reset button, after a while, the new
+sketch should start. Power down, and remove the SD card to prevent a reflash
+on next power up. Thats it.
+
+If you have several boards, you may of course chose to name them
+differently, such that you can carry the firmware for all of them on a single
+SD card.
+
+Some Notes on the Hardware
+--------------------------
+The MMC/SD card needs to be connected in the usual way to the SPI bus. 
+An additional pin is needed to be used as ChipSelect signal.
+On Arduino Ethernet and Arduino EthShield SD, PD4 is used,
+so this is also what 2boots uses by default. You can easily add 
+another signal in the Makefile in case you build your own boards, 
+and happen to use a different pin.
+
+I'm always interested to add support for as many configurations as possible.
+
+
+Where can I find the .hex file in the Arduino IDE ?
+---------------------------------------------------
+
+It used to be in the applet folder. This changed with arduino-0018
+Have a look at this thread:
+http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1268011960
+
+
+
+
 How to build
 ------------
 On Linux, simply install avr-gcc, lib-avr and avrdude, then run:
@@ -37,53 +89,29 @@ The .hex files are named after the following sheme:
 
 where PIN denotes the MMC/SD Chip select line to use.
 
-2boots-arduino-atmega328p-16000000L-PD4.hex:
- - Arduino ETH
- - Arduino with atemga328 (i.e. Uno) plus Ethernet Shield 
+A few examples:
 
-2boots-arduino-atmega168-1600000L-PD4.hex for
- - Arduino with atmega168 (i.e.) plus Ethernet Shield
+* 2boots-arduino-atmega328p-16000000L-PD4.hex is for:
+  - Arduino ETHERNET
+  - Arduino with atemga328 (i.e. Uno) plus Arduino EthShield SD
 
-2boots-arduno-atmega328p-8000000L-PD4.hex:
- - Arduino Pro 3.3V (w atmega328p) plus Ethernt Shield
+* 2boots-arduino-atmega168-1600000L-PD4.hex for
+  - Arduino with atmega168 (i.e.) plus Arduino EthShield SD
+
+* 2boots-arduno-atmega328p-8000000L-PD4.hex:
+  - Arduino Pro 3.3V (w atmega328p) plus Arduino EthShield SD
 
 
 
-How to flash
-------------
-Connect your board to your ISP programmer of choice,
-Adapt the setting for avrdude in the flash.sh script (ISPTOOL, ISPPORT, ISPSPEED), 
-then, run:
+How to flash the bootloader
+---------------------------
+* Connect your bare Arduino board (no Shields, no SD cards, nothing),
+  to an ISP programmer of your choice.
+* Edit the ./flash.sh script and adapt the variables ISPTOOL, ISPPORT, 
+  and ISPSPEED to match your ISP programmer.
+  (default values are for a AVRISP mkII USB programmer)
+* Start flashing the bootloader, by issuing this command in a terminal:
 
 # sudo ./flash.sh build/2boots-arduino-atmega328p-16000000L-PD4.hex
 
 
-How does the MMC/SD stuff work?
--------------------------------
-
-The MMC/SD bootloader is disabled by default. If you want to enable it, 
-you will have to name your board. For this, simply load the included 
-Sketch "NameBoardSketch.pde", change the name you want to assign to
-the board and the run the sketch.
-
-The Sketch simply writes that name to the end of the EEPROM, in inverse order.
-
-If the bootloader finds a name in the EERPOM, it will init the SPI hardware, 
-search for an MMC / SD card and then look for a file that starts with
-board name, and ends in HEX.
-
-If your board is named "SAMPLE", then a file SAMPLE.hex would work, as
-would SAMPLE001.hex etc...
-
-If no file was found, the bootloader will revert to the serial method.
-
-This allows you to have different firmware for different board on the same
-SD card. It also means that the bootloader will only use the SPI lines
-on boards that are named.
-
-Where can I find the .hex file in the Arduino IDE ?
----------------------------------------------------
-
-It used to be in the applet folder. This changed with arduino-0018
-Have a look at this thread:
-http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1268011960
