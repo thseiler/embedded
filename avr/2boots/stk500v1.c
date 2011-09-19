@@ -174,7 +174,7 @@ static char getch(void)
 	return 0;
 #elif defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 	uint32_t count = 0;
-		
+
 	while(!(UCSR0A & _BV(RXC0))){
 		/* 20060803 DojoCorp:: Addon coming from the previous Bootloader*/
 		/* HACKME:: here is a good place to count times*/
@@ -184,7 +184,7 @@ static char getch(void)
 	  		while (1); // 16 ms 
 	  	}
 	}
-	
+
 	return UDR0;
 #else
 	/* m8,16,32,169,8515,8535,163 */
@@ -273,9 +273,9 @@ static inline void handle_write() {
 			EECR |= (1<<EEPE);
 #else
 			eeprom_write_byte((void *)address,pagebuffer[w]);
-#endif			
+#endif
 			address++;
-		}			
+		}
 	} else {					            //Write to FLASH one page at a time
 		write_flash_page();
 	}
@@ -304,7 +304,7 @@ static inline void handle_read() {
 #endif
 			address++;
 		}
-	}		
+	}
 }
 
 /* stk500v1 protocol ---------------------------------- */
@@ -326,15 +326,15 @@ void stk500v1() {
 		// handle errors and quit cmd...
 		if (ch == '0') firstok = 1;
 		if (firstok == 0 || ch == 'Q') break;
-		
+
 		/* commands interpreter: check for cmd that need reply */
 		if (
 #ifndef MINIMALISTIC
-			ch == '1' ||
-			ch == 'R' ||
+		    ch == '1' ||
+		    ch == 'R' ||
 		    ch == '@' ||
 #endif
-			ch == 'A' ||
+		    ch == 'A' ||
 		    ch == 'U' ||
 		    ch == 'V' ||
 		    ch == 'u' ||
@@ -347,7 +347,7 @@ void stk500v1() {
 		{
 			/* command was found, determine lenght... */
 			uint16_t len = 0;
-		
+
 			if (ch == 't' || ch == 'd') {
 				/* parse len */
 				/* length is big endian and is in bytes */
@@ -366,17 +366,17 @@ void stk500v1() {
 				if (ch == 'U') len = 2;
 				if (ch == 'A') len = 1;
 			}
-		
+
 			// now consume the right amount of bytes
 			for (w=0; w < len; w++) pagebuffer[w] = getch();
-		
+
 			// search Sync Token
 			while (getch() != ' ');
 
 			// send start of response
 			putch(0x14);
 
-			
+
 			// handle response
 #ifndef MINIMALISTIC
 			if (ch == '1') handle_programmerID();
@@ -389,11 +389,11 @@ void stk500v1() {
 			if (ch == 't') handle_read();
 
 			// send end of response
-			putch(0x10); 
-		} 
-		
+			putch(0x10);
+		}
+
 	} /* forever loop */
-	
+
 	/* make avrdude happy when issuing quit command */
 	putch(0x14);
 	putch(0x10);
