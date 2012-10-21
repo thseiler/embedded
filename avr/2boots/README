@@ -22,85 +22,76 @@ Features:
 
 How does the MMC/SD stuff work?
 -------------------------------
-
 The MMC/SD part of the bootloader is disabled by default. This is actually
 a safety feature, as people do not generally expect their bootloader to
 output random signals on the SPI lines during boot-up.
 
-2boots will actually first look at the end of the EEPROM. Only if it finds
-a name there, then 2boots will configure the SPI bus and try to init the
-SD card. 
+2boots will therefore look at the end of the EEPROM. Only if it finds
+a name there, 2boots will configure the SPI bus and try to init the
+SD card.
 
 So if you want to enable the MMC part of 2boots, you will have to give
 your board a name. For this, simply load the included Sketch 
 "NameBoardSketch.pde", optionally edit the name, and then run the sketch.
 The sketch simply writes that name to the end of the EEPROM, in inverse order.
-The name can not be longer than 8 characters. The default is "ARDUINO".
+IMPORTANT: The name you choose must be a MS DOS compatible name. This means:
+* The name can not be longer than 8 characters.
+* The name must contain only UPPER CASE letters. Not lower case allowed, as
+  MS DOS converts them to upper case before saving.
+The default name in NameBoardSketch.pde is a simple "ARDUINO".
 
 Now, prepare an SD card with the first partition: FAT16 and less than 2GB
 in size. Copy the hex file directly into the root folder of the SD Card
-and give it the same name as your board: i.e. ARDUINO.HEX. 
+and give it the same name as your board: i.e. ARDUINO.HEX.
+IMPORTANT: Again, use only upper case letters, even in the extension.
 
 To run the upgrade, simply insert the SD card with the .hex file into
 your Arduino, power on, and press the reset button, after a while, the new
 sketch should start. Power down, and remove the SD card to prevent a reflash
 on next power up. Thats it.
 
-If you have several boards, you may of course chose to name them
-differently, such that you can carry the firmware for all of them on a single
-SD card.
+If you have several boards, you may of course chose to write different names
+to their eeproms. In that way you can carry the firmware for many different boards
+on a single SD card.
 
-Some Notes on the Hardware
---------------------------
-The MMC/SD card needs to be connected in the usual way to the SPI bus. 
-An additional pin is needed to be used as ChipSelect signal.
-On Arduino Ethernet and Arduino EthShield SD, PD4 is used,
-so this is also what 2boots uses by default. You can easily add 
-another signal in the Makefile in case you build your own boards, 
-and happen to use a different pin.
 
-I'm always interested to add support for as many configurations as possible.
+How do I build it?
+------------------
+You need a build environment on a linux box that can compile for avr, so
+please install avr-gcc and libc-avr and avrdude. 
+
+Then, you should be able to just run
+$ make
+
+This should build 2boots for all boards and configurations. Once its done,
+you can find the different .hex files in the ./build subfolder.
+
+Important: If you modified the code, you should double-check that the "text"
+segments are smaller than 2048 bytes. Otherwise, 2boots wont fit into the
+bootblock of the AVR, and strange bugs will result.
 
 
 Where can I find the .hex file in the Arduino IDE ?
 ---------------------------------------------------
-
 It used to be in the applet folder. This changed with arduino-0018
 Have a look at this thread:
 http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1268011960
 
 
-
-
-How to build
-------------
-On Linux, simply install avr-gcc, lib-avr and avrdude, then run:
-
-# make
-
-This should build 2boots for all supported boards, you can find the .hex
-files in the ./build subfolder
-
 Which .hex the right one for my board?
 --------------------------------------
 The .hex files are named after the following sheme:
-
 2boot-BOARDNAME-MCU-FREQ-PIN.hex
-
 where PIN denotes the MMC/SD Chip select line to use.
 
 A few examples:
-
 * 2boots-arduino-atmega328p-16000000L-PD4.hex is for:
   - Arduino ETHERNET
   - Arduino with atemga328 (i.e. Uno) plus Arduino EthShield SD
-
 * 2boots-arduino-atmega168-1600000L-PD4.hex for
   - Arduino with atmega168 (i.e.) plus Arduino EthShield SD
-
 * 2boots-arduno-atmega328p-8000000L-PD4.hex:
   - Arduino Pro 3.3V (w atmega328p) plus Arduino EthShield SD
-
 
 
 How to flash the bootloader
@@ -115,3 +106,35 @@ How to flash the bootloader
 # sudo ./flash.sh build/2boots-arduino-atmega328p-16000000L-PD4.hex
 
 
+Some Notes on the Hardware
+--------------------------
+The MMC/SD card needs to be connected in the usual way to the SPI bus.
+An additional pin is needed to be used as ChipSelect signal.
+On Arduino Ethernet and Arduino EthShield SD, PD4 is used,
+so this is also what 2boots uses by default. 
+
+You can easily change this pin in the Makefile:
+Look for a line similar to this:
+board-arduino: MMC_CSS = nommc PD4
+
+This is a space separated list that tells make which versions to build for
+this board. "nommc" is a serial only version. And "PD4" will create a version which uses
+PD4 as ChipSelect line.
+
+
+Custom Boards
+-------------
+2boots was designed to allow you to easily add variants for your custom
+boards. All you need to do is to create a new board-whatever.c/.h file.
+In this file, you implement the main() function with the desired control flow.
+I.e. you could add a blinking led, remove the serial loader, or only run the
+loader if a certain button was held during reset...
+
+Important: If you write your own code, check that the resulting binary is less than
+2048 bytes in size, or strange bugs may result.
+
+Something didn't work?
+----------------------
+I'm interested to add support for as many configurations as possible.
+So if 2boots does not work for you out of the box, and you had to change
+something, please let me know...
