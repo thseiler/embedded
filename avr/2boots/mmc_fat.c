@@ -94,7 +94,7 @@ uint8_t buff[512];
 
 
 /*			
-*		Call mmc_init one time after a card has been connected to the µC's SPI bus!
+*		Call mmc_init one time after a card has been connected to the ï¿½C's SPI bus!
 *	
 *		return values:
 *			MMC_OK:				MMC initialized successfully
@@ -303,7 +303,7 @@ static inline uint8_t fat16_readRootDirEntry(uint16_t entry_num) {
 	for (i = 0; pagebuffer[i]; i++) { 
 	  match &= (pagebuffer[i] == dir->name[i]);
 	}
-	if (!(match & i)) return 0;
+	if (!(match && i)) return 0;
 	
 	/* match ending, seach for HEX => return 1, or EEP => return 2*/
 	if (dir->name[9] != 'E') return 0;
