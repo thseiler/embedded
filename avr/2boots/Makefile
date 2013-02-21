@@ -132,7 +132,7 @@ clean:
 size-report:
 	@echo -----[Size reports]----------------------------------------
 	@echo 
-	@$(AVRSIZE) build/*.hex
+	@$(AVRSIZE) build/*.elf
 
 # This section finally creates targets for all combinations of boards, mcus, mmc-cs and frequencies:
 # because of evil make magic (secondary expansion) it should be the last rule
