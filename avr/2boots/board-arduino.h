@@ -33,7 +33,7 @@
  * The original Makefile seemed to use 19200 by default, and
  * 57600 if the target was a atmega328p or atmega1280
  */
-#if   defined(__AVR_ATmega328P__) || defined(__AVR_ATmega1280)
+#if   defined(__AVR_ATmega328P__) || defined(__AVR_ATmega1280__)
  #define BAUD_RATE 57600
  #if F_CPU <= 8000000L
   #define DOUBLE_SPEED

@@ -124,14 +124,14 @@ static inline unsigned char mmc_init(void)
 	unsigned char res;
 
 	cmd[0] = 0x40 + MMC_GO_IDLE_STATE;
-	cmd[1] = 0x00; cmd[2] = 0x00; cmd[3] = 0x00; cmd[4] = 0x00; cmd[5] = 0x95;
+	cmd[1] = 0x00; cmd[2] = 0x00; cmd[3] = 0x00; cmd[4] = 0x00;	cmd[5] = 0x95;
 	
 	for (i=0; i<MMC_CMD0_RETRY; i++)
 	{
 		res=send_cmd(); //store result of reset command, should be 0x01
-
+		
 		MMC_PORT |= 1<<MMC_CS; //MMC Chip Select -> High (deactivate mmc);
-      	 	spi_send_byte(0xFF);
+      	spi_send_byte(0xFF);
 		if (res == 0x01)
 			break;
 	}
@@ -145,9 +145,9 @@ static inline unsigned char mmc_init(void)
 		
 //May be this becomes an endless loop ?
 //Counting i from 0 to 255 and then timeout
-//was to SHORT for some of my cards !
+//was too SHORT for some of my cards !
 	while(send_cmd() != 0) {
-		MMC_PORT |= 1<<MMC_CS; //MMC Chip Select -> High (deactivate);
+		MMC_PORT |= 1<<MMC_CS; //MMC Chip Select -> High (deactivate mmc);
 		spi_send_byte(0xFF);
 	}
 	
@@ -308,7 +308,7 @@ static inline uint8_t fat16_readRootDirEntry(uint16_t entry_num) {
 	/* match ending, seach for HEX => return 1, or EEP => return 2*/
 	if (dir->name[9] != 'E') return 0;
 	if (dir->name[8] == 'H' && dir->name[10] == 'X') return 1;
-	if (dir->name[8] == 'E' && dir->name[10] == 'P') return 2;
+	if (dir->name[8] == 'E' && dir->name[10] == 'P') return 2; //Removing this results in a larger text section
 	return 0;
 }
 
@@ -449,7 +449,7 @@ void mmc_updater() {
 		/* file on mmc with the same name...   */
 		
 		/* first, init mmc / fat */
-	   	if (fat16_init() != 0) return;	
+	   	if (fat16_init() != 0) return;
 
 		/* for each file in ROOT... */
 		for (entrycounter=0; entrycounter<512; entrycounter++)
