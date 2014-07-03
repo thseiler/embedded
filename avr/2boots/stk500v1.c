@@ -62,7 +62,6 @@ union length_union {
 
 struct flags_struct { // changed from a packed struct to save some bytes
 	uint8_t eeprom;
-	uint8_t rampz;
 } flags;
 
 /* uart stuff --------------------------------------------*/
@@ -292,10 +291,6 @@ static inline void handle_programmerVER(void) {
 
 static inline void handle_addr(void) {
 		address = *((uint16_t*) &pagebuffer[0]);
-#if defined (__AVR_ATmega128__) || defined (__AVR_ATmega1280__)
-		if (address>0x7FFF) flags.rampz = 1;		// No go with m256, FIXME
-		else flags.rampz = 0;
-#endif
 		address = address << 1;	        // address * 2 -> byte location
 }
 
@@ -354,9 +349,8 @@ static inline void handle_read() {
 			address++;
 		} else {
 #if defined (__AVR_ATmega128__) || defined (__AVR_ATmega1280__)
-			if (!flags.rampz) putch(pgm_read_byte_near(address));
-			else putch(pgm_read_byte_far(address + 0x10000));
-			// Hmmmm, yuck  FIXME when m256 arrvies
+			if (address & 0xFFFF0000) putch(pgm_read_byte_far(address));
+			else putch(pgm_read_byte_near(address));
 #else
 			putch(pgm_read_byte_near(address));
 #endif

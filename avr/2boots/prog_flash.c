@@ -34,7 +34,11 @@ uint8_t pagebuffer[SPM_PAGESIZE];
 
 
 /* address buffer */
+#ifdef LARGE_ADDR_SPACE
+uint32_t address;
+#else
 uint16_t address;
+#endif
 
 /* access to flash memory------------------------------------------ */
 

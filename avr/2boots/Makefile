@@ -79,7 +79,8 @@ board-ftthcont: MMC_CSS = PB2
 2boots-atmega328p%:  LDSECTION := --section-start=.text=0x7800 
 
 #atmega1280:
-2boots-atmega1280%: LDSECTION := --section-start=.text=0x1F000 
+2boots-atmega1280%: LDSECTION := --section-start=.text=0x1F000
+2boots-atmega1280%: DEFS += -DLARGE_ADDR_SPACE
 
 
 # This rule finally builds 2boots.

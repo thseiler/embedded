@@ -415,7 +415,14 @@ static inline void read_hex_file(void) {
 			if (file_read_byte() == ':') {
 				num_flash_words = file_read_hex();
 				file.next+=4; /* skip 4 bytes */
+#ifdef LARGE_ADDR_SPACE
+				uint8_t recordt = file_read_hex();
+				if (recordt == 0) continue;
+				else if (recordt == 1) break;
+				else num_flash_words = 0;
+#else
 				if (file_read_hex()) break;
+#endif
 			}
 		}
 	}
