@@ -40,7 +40,7 @@
 #include "mmc_fat.h"
 
 /* function prototype */
-void main (void) __attribute__ ((naked,section (".init9")));
+void main (void) __attribute__ ((naked,section (".init9"),externally_visible));
 
 /* some variables */
 const void (*app_start)(void) = 0x0000;

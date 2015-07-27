@@ -57,6 +57,14 @@ extern uint8_t buff[512];
 #endif
 
 //Port & Pin definitions.
+#if defined (__AVR_ATmega128__) || defined (__AVR_ATmega1280__)
+#define SPI_PORT PORTB
+#define SPI_DDR  DDRB
+#define SPI_MISO PB3		//DataOut of MMC
+#define SPI_MOSI PB2		//DataIn of  MMC
+#define SPI_CLK  PB1		//Clock of MMC
+#define SPI_SS   PB0        //SS pin of SPI interface
+#else
 //Settings below are recommended for a MEGA168 and MEGA328
 #define SPI_PORT PORTB
 #define SPI_DDR  DDRB
@@ -64,6 +72,7 @@ extern uint8_t buff[512];
 #define SPI_MOSI	PB3		//DataIn of  MMC
 #define SPI_CLK  	PB5		//Clock of MMC
 #define SPI_SS          PB2             //SS pin of SPI interface
+#endif
 
 // These define the Pin, Port and DDR of the Chip Select to the MMC...
 // Used to be defined here, but is now in the Makefile 

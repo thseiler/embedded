@@ -40,7 +40,7 @@
 /* for the SIGNATURE_X macros, and uart pins */
 #include <avr/io.h>
 
-/* acces to the pagebuffer */
+/* access to the pagebuffer */
 #include "prog_flash.h"
 
 /* we need to read/write the eeprom */
@@ -62,24 +62,20 @@ union length_union {
 
 struct flags_struct { // changed from a packed struct to save some bytes
 	uint8_t eeprom;
-	uint8_t rampz;
 } flags;
 
 /* uart stuff --------------------------------------------*/
 
-#ifdef __AVR_ATmega128__
-static uint8_t bootuart = 0;
+#if defined (__AVR_ATmega128__) || defined (__AVR_ATmega1280__)
+//Select UART to use on multi-uart systems
+static const uint8_t bootuart = 1;
 #endif
 
 static inline void setup_uart() {
 
 	/* initialize UART(s) depending on CPU defined */
 
-#ifdef __AVR_ATmega128__
-	/* no bootuart was selected, default to uart 0 */
-	if(!bootuart) {
-		bootuart = 1;
-	}
+#if defined (__AVR_ATmega128__) || defined (__AVR_ATmega1280__)
 
 	if(bootuart == 1) {
 		UBRR0L = (uint8_t)(F_CPU/(BAUD_RATE*16L)-1);
@@ -95,6 +91,30 @@ static inline void setup_uart() {
 		UCSR1C = 0x06;
 		UCSR1B = _BV(TXEN1)|_BV(RXEN1);
 	}
+
+#ifdef __AVR_ATmega1280__
+	if (bootuart == 3) {
+		UBRR2L = (uint8_t)(F_CPU/(BAUD_RATE*16L)-1);
+		UBRR2H = (F_CPU/(BAUD_RATE*16L)-1) >> 8;
+		UCSR2A = 0x00;
+		UCSR2C = 0x06;
+		UCSR2B = _BV(TXEN2)|_BV(RXEN2);
+	}
+	if (bootuart == 4) {
+		UBRR3L = (uint8_t)(F_CPU/(BAUD_RATE*16L)-1);
+		UBRR3H = (F_CPU/(BAUD_RATE*16L)-1) >> 8;
+		UCSR3A = 0x00;
+		UCSR3C = 0x06;
+		UCSR3B = _BV(TXEN3)|_BV(RXEN3);
+	}
+
+	/* Enable internal pull-up resistor on E0 (RX), in order
+	 * to suppress line noise that prevents the bootloader from timing out.
+	 */
+	DDRE &= ~_BV(PINE0);
+	PORTE |= _BV(PINE0);
+#endif
+
 #elif defined __AVR_ATmega163__
 	UBRR = (uint8_t)(F_CPU/(BAUD_RATE*16L)-1);
 	UBRRHI = (F_CPU/(BAUD_RATE*16L)-1) >> 8;
@@ -138,7 +158,7 @@ static void putch(char ch)
 {
 	/* send a byte to UART depending on CPU defined */
 
-#ifdef __AVR_ATmega128__
+#if defined (__AVR_ATmega128__) || defined (__AVR_ATmega1280__)
 	if(bootuart == 1) {
 		while (!(UCSR0A & _BV(UDRE0)));
 		UDR0 = ch;
@@ -147,6 +167,16 @@ static void putch(char ch)
 		while (!(UCSR1A & _BV(UDRE1)));
 		UDR1 = ch;
 	}
+#ifdef __AVR_ATmega1280__
+	else if (bootuart == 3) {
+		while (!(UCSR2A & _BV(UDRE2)));
+		UDR2 = ch;
+	}
+	else if (bootuart == 4) {
+		while (!(UCSR3A & _BV(UDRE3)));
+		UDR3 = ch;
+	}
+#endif
 #elif defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 	while (!(UCSR0A & _BV(UDRE0)));
 	UDR0 = ch;
@@ -160,42 +190,69 @@ static void putch(char ch)
 
 static char getch(void)
 {
+	uint32_t count = 0;
 	/* read a byte from UART depending on CPU defined */
 
-#ifdef __AVR_ATmega128__
+#if defined (__AVR_ATmega128__) || defined (__AVR_ATmega1280__)
 	if(bootuart == 1) {
-		while(!(UCSR0A & _BV(RXC0)));
+		while(!(UCSR0A & _BV(RXC0))) {
+			count++;
+			if (count > MAX_TIME_COUNT) {
+				return 0xFF;
+			}
+		}
 		return UDR0;
 	}
 	else if(bootuart == 2) {
-		while(!(UCSR1A & _BV(RXC1)));
+		while(!(UCSR1A & _BV(RXC1))) {
+			count++;
+			if (count > MAX_TIME_COUNT) {
+				return 0xFF;
+			}
+		}
 		return UDR1;
 	}
-	return 0;
-#elif defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
-	uint32_t count = 0;
+#ifdef __AVR_ATmega1280__
+	else if (bootuart == 3) {
+		while (!(UCSR2A & _BV(RXC2))) {
+			count++;
+			if (count > MAX_TIME_COUNT) {
+				return 0xFF;
+			}
+		}
+		return UDR2;
+	}
+	else if (bootuart == 4) {
+		while (!(UCSR3A & _BV(RXC3))) {
+			count++;
+			if (count > MAX_TIME_COUNT) {
+				return 0xFF;
+			}
+		}
+		return UDR3;
+	}
+	return 0xFF;
+#endif
 
+#elif defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 	while(!(UCSR0A & _BV(RXC0))){
 		/* 20060803 DojoCorp:: Addon coming from the previous Bootloader*/
 		/* HACKME:: here is a good place to count times*/
 		count++;
 		if (count > MAX_TIME_COUNT) { 
-			WDTCSR = _BV(WDE);
-	  		while (1); // 16 ms 
+			return 0xFF;
 	  	}
 	}
 
 	return UDR0;
 #else
 	/* m8,16,32,169,8515,8535,163 */
-	uint32_t count = 0;
 	while(!(UCSRA & _BV(RXC))){
 		/* 20060803 DojoCorp:: Addon coming from the previous Bootloader*/               
 		/* HACKME:: here is a good place to count times*/
 		count++;
 		if (count > MAX_TIME_COUNT) {
-			WDTCSR = _BV(WDE);
-	  		while (1); // 16 ms
+			return 0xFF;
 	  	}
 	}
 	return UDR;
@@ -234,10 +291,6 @@ static inline void handle_programmerVER(void) {
 
 static inline void handle_addr(void) {
 		address = *((uint16_t*) &pagebuffer[0]);
-#ifdef __AVR_ATmega128__
-		if (address>0x7FFF) flags.rampz = 1;		// No go with m256, FIXME
-		else flags.rampz = 0;
-#endif
 		address = address << 1;	        // address * 2 -> byte location
 }
 
@@ -295,10 +348,9 @@ static inline void handle_read() {
 #endif
 			address++;
 		} else {
-#if defined __AVR_ATmega128__
-			if (!flags.rampz) putch(pgm_read_byte_near(address));
-			else putch(pgm_read_byte_far(address + 0x10000));
-			// Hmmmm, yuck  FIXME when m256 arrvies
+#if defined (__AVR_ATmega128__) || defined (__AVR_ATmega1280__)
+			if (address & 0xFFFF0000) putch(pgm_read_byte_far(address));
+			else putch(pgm_read_byte_near(address));
 #else
 			putch(pgm_read_byte_near(address));
 #endif
@@ -325,6 +377,7 @@ void stk500v1() {
 
 		// handle errors and quit cmd...
 		if (ch == '0') firstok = 1;
+		if (ch == 0xFF) return;
 		if (firstok == 0 || ch == 'Q') break;
 
 		/* commands interpreter: check for cmd that need reply */
@@ -333,19 +386,20 @@ void stk500v1() {
 		    ch == '1' ||
 		    ch == 'R' ||
 		    ch == '@' ||
+
 #endif
 		    ch == 'A' ||
 		    ch == 'U' ||
 		    ch == 'V' ||
+		    ch == 'B' ||
+		    ch == 'E' ||
 		    ch == 'u' ||
 		    ch == 'd' ||
 		    ch == 't' ||
-		    ch == 'B' ||
-		    ch == 'E' ||
 		    ch == '0' ||
 		    ch == 'P')
 		{
-			/* command was found, determine lenght... */
+			/* command was found, determine length... */
 			uint16_t len = 0;
 
 			if (ch == 't' || ch == 'd') {

@@ -14,6 +14,7 @@ void setup() {
   
   /* debug */
   Serial.begin(9600);
+  Serial.println("Giving board name...");
 
   /* this is the name you give to the board
    * IMPORTANT: Must comply to MS DOS naming scheme!

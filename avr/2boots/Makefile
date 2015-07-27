@@ -13,15 +13,15 @@
 CC       = avr-gcc
 OBJCOPY  = avr-objcopy
 OBJDUMP  = avr-objdump
-OPTIMIZE = -Os -funsigned-char -fno-split-wide-types -fno-inline-small-functions -mcall-prologues -ffunction-sections -fdata-sections -ffreestanding -combine -fwhole-program -fno-jump-tables
+OPTIMIZE = -Os -fwhole-file -flto -funsigned-char -fno-split-wide-types -fno-inline-small-functions -mcall-prologues -ffunction-sections -fdata-sections -ffreestanding -fno-jump-tables
 AVRSIZE  = avr-size
 
 override CFLAGS  = -g -Wall $(OPTIMIZE) -mmcu=$(MCU) -DF_CPU=$(FCPU) $(DEFS)
-override LDFLAGS = -Wl,$(LDSECTION) -Wl,--relax -nostartfiles -Wl,-gc-sections
+override LDFLAGS = -Wl,$(LDSECTION) -Wl,--relax -nostartfiles -Wl,--gc-sections
 
 # these are our actual source files
 # the BOARD variable will be replaced later, depending on which board is beeing compiled
-SRC = $(BOARD).c mmc_fat.c stk500v1.c prog_flash.c
+SRC = $(BOARD).c stk500v1.c mmc_fat.c prog_flash.c
 
 # the 'all' rule should build 2boots for all supported boards
 # to create one target per board-*.c file we use a $(wildcard... ) rule
@@ -45,7 +45,7 @@ board-%: MMC_CSS = nommc
 
 #arduino
 board-arduino: FCPUS = 8000000L 16000000L
-board-arduino: MCUS = atmega168 atmega328p
+board-arduino: MCUS = atmega168 atmega328p atmega1280
 board-arduino: MMC_CSS = nommc PD4
 
 #lilypad
@@ -79,7 +79,8 @@ board-ftthcont: MMC_CSS = PB2
 2boots-atmega328p%:  LDSECTION := --section-start=.text=0x7800 
 
 #atmega1280:
-2boots-atmega1280%: LDSECTION := --section-start=.text=0x1F000 
+2boots-atmega1280%: LDSECTION := --section-start=.text=0x1F000
+2boots-atmega1280%: DEFS += -DLARGE_ADDR_SPACE
 
 
 # This rule finally builds 2boots.
@@ -119,10 +120,10 @@ board-ftthcont: MMC_CSS = PB2
 	$(OBJCOPY) -j .text -j .data -O ihex build/$< build/$@	
 
 %.srec: %.elf
-	$(OBJCPOY) -j .text -j .data -O srec build/$< build/$@
+	$(OBJCOPY) -j .text -j .data -O srec build/$< build/$@
 
 %.bin: %.elf
-	$(OBJCPOY) -j .text -j .data -O binary build/$< build/$@
+	$(OBJCOPY) -j .text -j .data -O binary build/$< build/$@
 
 # this one is handy, too
 clean:
