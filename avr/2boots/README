@@ -70,13 +70,15 @@ Important: If you modified the code, you should double-check that the "text"
 segments are smaller than 2048 bytes. Otherwise, 2boots wont fit into the
 bootblock of the AVR, and strange bugs will result.
 
+Note: There are issues with newer gcc versions (> 4.5), you can try the new makefile in
+the "newer-gcc-support-experimental" branch, this uses the link time optimisation
+framework of newer gcc versions, but it is experimental and not very well tested.
 
 Where can I find the .hex file in the Arduino IDE ?
 ---------------------------------------------------
 It used to be in the applet folder. This changed with arduino-0018
 Have a look at this thread:
 http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1268011960
-
 
 Which .hex the right one for my board?
 --------------------------------------
@@ -118,9 +120,12 @@ Look for a line similar to this:
 board-arduino: MMC_CSS = nommc PD4
 
 This is a space separated list that tells make which versions to build for
-this board. "nommc" is a serial only version. And "PD4" will create a version which uses
+this board. "nommc" is a serial only version. And "PORTD4" will create a version which uses
 PD4 as ChipSelect line.
 
+Newer SD cards are not working well, the problem is in the initialization code.
+SD card should be initialized by a command 41 instead of command 1. This logic
+is currently missing in the code, but its on the TODO list.
 
 Custom Boards
 -------------
