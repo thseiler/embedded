@@ -1,6 +1,6 @@
 # 2boots Makefile
-# (c) 2011 thomas seiler      (thseiler@gmail.com)
-#
+# (c) 2011-2017 thomas seiler      (thseiler@gmail.com)
+# 
 
 # 'all' is the default target: 
 .PHONY: all 
@@ -13,15 +13,16 @@
 CC       = avr-gcc
 OBJCOPY  = avr-objcopy
 OBJDUMP  = avr-objdump
-OPTIMIZE = -Os -fwhole-file -flto -funsigned-char -fno-split-wide-types -fno-inline-small-functions -mcall-prologues -ffunction-sections -fdata-sections -ffreestanding -fno-jump-tables
+OPTIMIZE = -mno-interrupts -funsigned-char -funsigned-bitfields -Os -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -mrelax
 AVRSIZE  = avr-size
 
-override CFLAGS  = -g -Wall $(OPTIMIZE) -mmcu=$(MCU) -DF_CPU=$(FCPU) $(DEFS)
-override LDFLAGS = -Wl,$(LDSECTION) -Wl,--relax -nostartfiles -Wl,--gc-sections
+override CFLAGS  = -x c $(OPTIMIZE) -g2 -Wall -mmcu=$(MCU) -DF_CPU=$(FCPU) $(DEFS) -std=gnu99 -flto
+override LDFLAGS = -Wl,$(LDSECTION) -nostartfiles -nodefaultlibs -nostdlib -nostartfiles -Wl,--gc-sections -mrelax -mmcu=$(MCU) -flto -Os
 
 # these are our actual source files
 # the BOARD variable will be replaced later, depending on which board is beeing compiled
-SRC = $(BOARD).c stk500v1.c mmc_fat.c prog_flash.c
+SRC  = $(BOARD).c stk500v1.c mmc_fat.c prog_flash.c
+OBJS = $(BOARD).o stk500v1.o mmc_fat.o prog_flash.o
 
 # the 'all' rule should build 2boots for all supported boards
 # to create one target per board-*.c file we use a $(wildcard... ) rule
@@ -45,8 +46,8 @@ board-%: MMC_CSS = nommc
 
 #arduino
 board-arduino: FCPUS = 8000000L 16000000L
-board-arduino: MCUS = atmega168 atmega328p atmega1280
-board-arduino: MMC_CSS = nommc PD4
+board-arduino: MCUS = atmega168 atmega328p
+board-arduino: MMC_CSS = nommc PORTD4
 
 #lilypad
 board-lilypad: FCPUS = 8000000L
@@ -56,7 +57,7 @@ board-lilypad: MMC_CSS = nommc
 #stalker:
 board-stalker: FCPUS = 8000000L
 board-stalker: MCUS = atmega328p
-board-stalker: MMC_CSS = PB1 PB2
+board-stalker: MMC_CSS = PORTB1 PORTB2
 
 #ftthhead
 board-ftthhead: FCPUS = 8000000L
@@ -68,8 +69,6 @@ board-ftthcont: FCPUS = 8000000L
 board-ftthcont: MCUS  = atmega328p
 board-ftthcont: MMC_CSS = PB2
 
-
-
 # set certain variables per MCU
 
 #atmega168:
@@ -79,18 +78,20 @@ board-ftthcont: MMC_CSS = PB2
 2boots-atmega328p%:  LDSECTION := --section-start=.text=0x7800 
 
 #atmega1280:
-2boots-atmega1280%: LDSECTION := --section-start=.text=0x1F000
-2boots-atmega1280%: DEFS += -DLARGE_ADDR_SPACE
+2boots-atmega1280%:  LDSECTION := --section-start=.text=0x1F000
+2boots-atmega1280%:  DEFS += -DLARGE_ADDR_SPACE
 
 
 # This rule finally builds 2boots.
 # The idea here is to learn the configuration from the make target name
-# This is done with the help of good old shell
+# This is done with the help of good old shell (tm)
 2boots-%: MCU =  $(shell echo $@ | cut -d - -f 2 )
 2boots-%: FCPU = $(shell echo $@ | cut -d - -f 3 )
 2boots-%: MMC_CS = $(shell echo $@ | cut -d - -f 4)
+2boots-%: MMC_PORT=$(shell echo $(MMC_CS) | cut -c -5)
+2boots-%: MMC_DDR=DDR$(shell echo $(MMC_PORT) | cut -c 5)
 2boots-%: BOARD = $(shell echo $(subst .hex,,$@) | awk 'BEGIN {FS="-"} { for (f=5;f<=NF;f++) { printf($$f); if (f != NF) { printf("-") } } }' )
-2boots-%: DEFS += $(if $(findstring nommc,$(MMC_CS)) , , -DMMC_CS=$(MMC_CS) -DMMC_PORT=PORT$(shell echo $(MMC_CS) | cut -c 2) -DMMC_DDR=DDR$(shell echo $(MMC_CS) | cut -c 2 )) 
+2boots-%: DEFS += $(if $(findstring nommc,$(MMC_CS)) , , -DMMC_CS=$(MMC_CS) -DMMC_PORT=$(MMC_PORT) -DMMC_DDR=$(MMC_DDR) ) 
 2boots-%: ELFNAME = 2boots-$(subst board-,,$(BOARD))-$(MCU)-$(FCPU)-$(MMC_CS).elf
 2boots-%: HEXNAME = 2boots-$(subst board-,,$(BOARD))-$(MCU)-$(FCPU)-$(MMC_CS).hex
 2boots-%:
@@ -99,9 +100,13 @@ board-ftthcont: MMC_CSS = PB2
 	@echo Compiling 2boots for: 
 	@echo - $(BOARD) 
 	@echo - MCU:$(MCU) @ $(subst 000L,,$(FCPU))kHz
-	@echo - MMC: $(MMC_CS)
+	@echo - MMC_CS:$(MMC_CS) PORT:$(MMC_PORT) DDR:$(MMC_DDR)
 	@echo
 	@echo "#include \"$(BOARD).h\"" > board.h
+#	This is a two step compile
+#	$(CC) $(CFLAGS) $(SRC) -c 
+#	$(CC) $(LDFLAGS) $(OBJS) -o build/$(ELFNAME) $(LIBS)
+#	This is a one step compile
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SRC) -o build/$(ELFNAME) $(LIBS)
 	@echo
 	@echo sucessfully compiled to build/$(ELFNAME)

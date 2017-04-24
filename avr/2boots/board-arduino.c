@@ -40,14 +40,14 @@
 #include "mmc_fat.h"
 
 /* function prototype */
-void main (void) __attribute__ ((naked,section (".init9"),externally_visible));
+int main (void) __attribute__ ((OS_main,section (".init9"),externally_visible));
 
 /* some variables */
-const void (*app_start)(void) = 0x0000;
+void (* const app_start)(void) = 0x0000;
 uint8_t reset_reason = 0;
 
 /* main program starts here */
-void main(void)
+int main(void)
 {
 	/* here we learn how we were reset */
 	reset_reason = MCUSR;
@@ -60,11 +60,6 @@ void main(void)
 	/* start app right ahead if this was not an external reset */
 	/* this means that all the code below this line is only executed on external reset */
 	if (!(reset_reason & _BV(EXTRF))) app_start();
-
-	/* this is needed because of the __attribute__ naked, section .init 9 */
-	/* from now, we can call functions :-) */
-	asm volatile ( "clr __zero_reg__" );
-	SP=RAMEND;
 
 	/* try first serial, to not let the programmer timeout in case there is an MMC included */
 	stk500v1();

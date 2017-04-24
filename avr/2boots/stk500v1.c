@@ -55,14 +55,7 @@
 /* use the global pagebuffer as scratch pad */
 
 /* some variables */
-union length_union {
-	uint16_t word;
-	uint8_t  byte[2];
-} length;
 
-struct flags_struct { // changed from a packed struct to save some bytes
-	uint8_t eeprom;
-} flags;
 
 /* uart stuff --------------------------------------------*/
 
@@ -286,12 +279,20 @@ static inline void handle_programmerVER(void) {
 	else if(ch==0x81) putch(SW_MAJOR);	// Software major version
 	else if(ch==0x82) putch(SW_MINOR);	// Software minor version
 	else if(ch==0x98) putch(0x03);		// Unknown but seems to be required by avr studio 3.56
-	else putch(0x00);				// Covers various unnecessary responses we don't care about
+	else putch(0x00);			// Covers various unnecessary responses we don't care about
 }
 
-static inline void handle_addr(void) {
-		address = *((uint16_t*) &pagebuffer[0]);
-		address = address << 1;	        // address * 2 -> byte location
+static inline uint16_t handle_addr(void) {
+	union address_union {
+		uint16_t word;
+		uint8_t  byte[2];
+	} local_address;
+
+	local_address.byte[0] = pagebuffer[0];
+	local_address.byte[1] = pagebuffer[1];
+	
+	return local_address.word << 1;
+	//address = address.word << 1;	        // address * 2 -> byte location
 }
 
 static inline void handle_spi() {
@@ -314,10 +315,10 @@ static inline void handle_sig() {
 	putch(SIGNATURE_2);	
 }
 
-static inline void handle_write() {
+static inline void handle_write(uint16_t address, uint16_t len, uint8_t eeprom_flag) {
 	uint8_t w;
-	if (flags.eeprom) {		                //Write to EEPROM one byte at a time
-		for(w=0;w<length.word;w++) {
+	if (eeprom_flag) {		                //Write to EEPROM one byte at a time
+		for(w=0;w<len;w++) {
 #if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 			while(EECR & (1<<EEPE));
 			EEAR = (uint16_t)(void *)address;
@@ -330,14 +331,15 @@ static inline void handle_write() {
 			address++;
 		}
 	} else {					            //Write to FLASH one page at a time
-		write_flash_page();
+		write_flash_page(address);                          // Here, we assume that the external programmer is smart enough to
+                                                                    // provide exactly one page at a time.
 	}
 }
 
-static inline void handle_read() {
+static inline void handle_read(uint16_t address, uint16_t len, uint8_t eeprom_flag) {
 	uint16_t w = 0;
-	for (w=0;w < length.word;w++) {		        // Can handle odd and even lengths okay
-		if (flags.eeprom) {	                        // Byte access EEPROM read
+	for (w=0;w < len;w++) {		        		// Can handle odd and even lengths okay
+		if (eeprom_flag) {	                        // Byte access EEPROM read
 #if defined(__AVR_ATmega168__)  || defined(__AVR_ATmega328P__)
 			while(EECR & (1<<EEPE));
 			EEAR = (uint16_t)(void *)address;
@@ -361,10 +363,18 @@ static inline void handle_read() {
 
 /* stk500v1 protocol ---------------------------------- */
 
+typedef union length_union {
+	uint16_t word;
+	uint8_t  byte[2];
+} length_t;
+
 void stk500v1() {
 	uint16_t w  = 0;
 	uint8_t ch = 0;
 	uint8_t firstok = 0;
+	uint16_t address = 0;
+	uint8_t eeprom_flag = 0;
+	length_t length;
 
 	/* open serial port */
 	setup_uart();
@@ -408,7 +418,7 @@ void stk500v1() {
 				length.byte[1] = getch();
 				length.byte[0] = getch();
 
-				flags.eeprom = (getch() == 'E');
+				eeprom_flag = (getch() == 'E');
 				len = (ch == 'd') ? length.word : 0;
 			} else {
 				/* constant len */
@@ -436,11 +446,11 @@ void stk500v1() {
 			if (ch == '1') handle_programmerID();
 #endif
 			if (ch == 'A') handle_programmerVER();
-			if (ch == 'U') handle_addr();
+			if (ch == 'U') address =handle_addr();
 			if (ch == 'V') handle_spi();
 			if (ch == 'u') handle_sig();
-			if (ch == 'd') handle_write();
-			if (ch == 't') handle_read();
+			if (ch == 'd') handle_write(address,len,eeprom_flag);
+			if (ch == 't') handle_read(address,len,eeprom_flag);
 
 			// send end of response
 			putch(0x10);
