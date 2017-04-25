@@ -449,8 +449,8 @@ void stk500v1() {
 			if (ch == 'U') address =handle_addr();
 			if (ch == 'V') handle_spi();
 			if (ch == 'u') handle_sig();
-			if (ch == 'd') handle_write(address,len,eeprom_flag);
-			if (ch == 't') handle_read(address,len,eeprom_flag);
+			if (ch == 'd') handle_write(address,length.word,eeprom_flag);
+			if (ch == 't') handle_read(address,length.word,eeprom_flag);
 
 			// send end of response
 			putch(0x10);
